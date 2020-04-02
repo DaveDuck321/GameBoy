@@ -77,8 +77,7 @@ void GB::LDD_A_HL()
     */
     uint16_t hl = registers.getU16(Register::HL);
     registers.a = readU8(hl);
-    //TODO: dec hl
-    throw("Not implemented!");
+    DEC16_nn(Register::HL);
 }
 
 void GB::LDD_HL_A()
@@ -91,8 +90,7 @@ void GB::LDD_HL_A()
     */
     uint16_t hl = registers.getU16(Register::HL);
     writeU8(hl, registers.a);
-    //TODO: dec hl
-    throw("Not implemented!");
+    DEC16_nn(Register::HL);
 }
 
 void GB::LDI_A_HL()
@@ -105,8 +103,7 @@ void GB::LDI_A_HL()
     */
     uint16_t hl = registers.getU16(Register::HL);
     registers.a = readU8(hl);
-    //TODO: inc hl
-    throw("Not implemented!");
+    INC16_nn(Register::HL);
 }
 
 void GB::LDI_HL_A()
@@ -119,8 +116,7 @@ void GB::LDI_HL_A()
     */
     uint16_t hl = registers.getU16(Register::HL);
     writeU8(hl, registers.a);
-    //TODO: inc hl
-    throw("Not implemented!");
+    INC16_nn(Register::HL);
 }
 
 void GB::LDH_n_A(uint8_t n)
@@ -178,12 +174,12 @@ void GB::LD16_SP_n(int8_t n)
         H - Set or reset according to operation.
         C - Set or reset according to operation.
     */
-   registers.setU16(Register::HL, registers.sp+n);
-   registers.resetFlags(Flag::Z|Flag::N);
+    registers.setU16(Register::HL, registers.sp+n);
+    registers.resetFlags(Flag::Z|Flag::N);
 
     registers.setFlags(Flag::C, n > 0xFFFF-registers.sp);
     registers.setFlags(Flag::H, (n&0x00FF) > (0x00FF - (registers.sp&0x00FF)));
-   //TODO: debug potential error here, flags for carry look wrong
+    //TODO: debug potential error here, flags for carry look wrong
 }
 
 void GB::LD_nn_SP(int16_t nn)
@@ -223,6 +219,7 @@ void GB::POP(Register r)
     //TODO: check order
     registers.setU16(r, readU16(registers.sp));
     registers.sp += 2;
+
 }
 
 void GB::ADD_n(uint8_t n)
@@ -240,7 +237,7 @@ void GB::ADD_n(uint8_t n)
         C - Set if carry from bit 7
     */
     registers.setFlags(Flag::C, n > 0xFF - registers.a);
-    registers.setFlags(Flag::H, n > 0x0F - (registers.a&0x0F));
+    registers.setFlags(Flag::H, (n&0x0F) > (0x0F - (registers.a&0x0F)));
     registers.a = registers.a+n;
     registers.setFlags(Flag::Z, registers.a == 0);
     registers.resetFlags(Flag::N);
@@ -527,7 +524,7 @@ void GB::DAA()
         H - Reset.
         C - Set or reset according to operation.
     */
-    throw("Not implemented");
+    throw std::runtime_error("DAA Not implemented");
 }
 
 void GB::CPL()
@@ -592,7 +589,7 @@ void GB::HALT()
         Power down CPU until an interrupt occurs.
         Use this when ever possible to reduce energy consumption.
     */
-    throw("Not implemented");
+    registers.halt = true;
 }
 
 void GB::STOP()
@@ -601,7 +598,7 @@ void GB::STOP()
     Description:
         Halt CPU & LCD display until button pressed
     */
-    throw("Not implemented");
+    throw std::runtime_error("STOP Not implemented");
 }
 
 void GB::DI()
@@ -613,7 +610,7 @@ void GB::DI()
     Flags affected:
         None.
     */
-    throw("Not implemented");
+    registers.IME = false; //TODO: Timing is wrong here
 }
 
 void GB::EI()
@@ -625,7 +622,7 @@ void GB::EI()
     Flags affected:
         None.
     */
-    throw("Not implemented");
+    registers.IME = true; //TODO: Timing is wrong here
 }
 
 uint8_t GB::ROT_LC(uint8_t value)
@@ -643,7 +640,8 @@ uint8_t GB::ROT_LC(uint8_t value)
 
     registers.resetFlags(Flag::N|Flag::H);
     registers.setFlags(Flag::C, value&0x80);
-    registers.setFlags(Flag::Z, result==0);
+    //registers.setFlags(Flag::Z, result==0);
+    registers.resetFlags(Flag::Z);
 
     return result;
 }
@@ -683,7 +681,8 @@ uint8_t GB::ROT_RC(uint8_t value)
 
     registers.resetFlags(Flag::N|Flag::H);
     registers.setFlags(Flag::C, value&1);
-    registers.setFlags(Flag::Z, result==0);
+    //registers.setFlags(Flag::Z, result==0);
+    registers.resetFlags(Flag::Z);
 
     return result;
 }
