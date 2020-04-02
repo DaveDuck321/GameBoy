@@ -1,5 +1,5 @@
 CC := g++
-EXEC := a.exe
+EXEC := a.out
 CFLAGS := -g -O0 -DDEBUG
 
 INC_DIR := include
