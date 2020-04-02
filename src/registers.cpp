@@ -7,7 +7,7 @@ Flag operator | (Flag f1, Flag f2){
     );
 }
 
-uint8_t CPURegisters::getFlags(Flag flag)
+bool CPURegisters::getFlags(Flag flag)
 {
     return f & static_cast<uint8_t>(flag);
 }
@@ -15,7 +15,7 @@ uint8_t CPURegisters::getFlags(Flag flag)
 void CPURegisters::setFlags(Flag flag, bool set)
 {
     uint8_t flag_val = static_cast<uint8_t>(flag);
-    f = (f & ~flag_val) | (set*flag_val);
+    f = ((f & ~flag_val) | (set*flag_val));
 }
 
 void CPURegisters::setFlags(Flag flag)
