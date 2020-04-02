@@ -35,10 +35,11 @@ class CPURegisters
     public:
     uint8_t a, b, c, d, e, f, h, l;
     uint16_t sp, pc;
+    bool IME, halt;
 
     CPURegisters(GB *gb):gb(gb){};
 
-    uint8_t getFlags(Flag flag);
+    bool getFlags(Flag flag);
     void setFlags(Flag flag, bool set);
     void setFlags(Flag flag);
     void resetFlags(Flag flag);
