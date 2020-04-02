@@ -1,5 +1,6 @@
 #include "gb.hpp"
 #include <array>
+#include <sstream>
 
 const std::array<Register, 8> registerOpcodes = {
     Register::B, Register::C, Register::D, Register::E, Register::H, Register::L, Register::HL_ptr, Register::A
@@ -11,31 +12,36 @@ const std::array<Register, 4> register16Opcodes = {
 
 void GB::step()
 {
-    uint8_t opcode = pcPopU8();
+    //Check for interrupts
+    if(registers.IME)
+    {
+        uint8_t triggered = readU8(0xFFFF) & readU8(0xFF0F) & 0x1F;
+        if(triggered)
+        {
+            registers.halt = false;
+            registers.IME = false;
+            if(triggered & 0x01)       CALL_nn(0x40);
+            else if(triggered & 0x02)  CALL_nn(0x48);
+            else if(triggered & 0x04)  CALL_nn(0x50);
+            else if(triggered & 0x08)  CALL_nn(0x58);
+            else if(triggered & 0x10)  CALL_nn(0x60);
+        }
+    }
+
+    //Do nothing if waiting for interrupt
+    if(registers.halt) return;
+
+    std::cout << std::hex;
+    std::cout << "0x" << registers.pc << ":" <<std::endl;
+    uint8_t opcode = pcPopU8(false);
+    std::cout << "  OP: 0x" << (int)opcode <<std::endl;
+
     switch(opcode)
     {
     //8-Bit loads
         //LD nn,n
-        case 0x06:
-            LD_n_nn(Register::B, pcPopU8());
-            break;
-        case 0x0E:
-            LD_n_nn(Register::C, pcPopU8());
-            break;
-        case 0x16:
-            LD_n_nn(Register::D, pcPopU8());
-            break;
-        case 0x1E:
-            LD_n_nn(Register::E, pcPopU8());
-            break;
-        case 0x26:
-            LD_n_nn(Register::H, pcPopU8());
-            break;
-        case 0x2E:
-            LD_n_nn(Register::L, pcPopU8());
-            break;
-        case 0x36:
-            LD_n_nn(Register::HL_ptr, pcPopU8());
+        case 0x06: case 0x0E: case 0x16: case 0x1E: case 0x26: case 0x2E: case 0x36:
+            LD_n_nn(registerOpcodes[(opcode-0x06)>>3], pcPopU8());
             break;
         //LD r1,r2
         case 0x78 ... 0x7F: //LD a, n
@@ -76,32 +82,14 @@ void GB::step()
             LD_n_nn(Register::A, pcPopU8());
             break;
         //LD n, A
-        case 0X47: //LD B,A
-            LD_r_A(Register::B);
-            break;
-        case 0X4F: //LD C,A
-            LD_r_A(Register::C);
-            break;
-        case 0X57: //LD D,A
-            LD_r_A(Register::D);
-            break;
-        case 0X5F: //LD E,A
-            LD_r_A(Register::E);
-            break;
-        case 0X67: //LD H,A
-            LD_r_A(Register::H);
-            break;
-        case 0X6F: //LD L,A
-            LD_r_A(Register::L);
+        case 0X47: case 0X4F: case 0X57: case 0X5F: case 0X67: case 0X6F: case 0x77:
+            LD_r_A(registerOpcodes[(opcode-0X47)>>3]);
             break;
         case 0x02: //LD (BC),A
             LD_r_A(Register::BC_ptr);
             break;
         case 0X12: //LD (DE),A
             LD_r_A(Register::DE_ptr);
-            break;
-        case 0x77: //LD (HL),A
-            LD_r_A(Register::HL_ptr);
             break;
         case 0xEA: //LD (nn),A
             LD_n_A(pcPopU16());
@@ -133,7 +121,7 @@ void GB::step()
     //16-Bit loads
         //LD n,nn
         case 0x01: case 0x11: case 0x21: case 0x31:
-            LD16_n_nn(register16Opcodes[opcode>>8], pcPopU16());
+            LD16_n_nn(register16Opcodes[opcode>>4], pcPopU16());
             break;
         case 0xF9: //LD SP,HL
             LD16_SP_HL();
@@ -202,6 +190,7 @@ void GB::step()
             break;
         case 0xE6: //AND #
             AND_n(pcPopU8());
+            break;
         //OR
         case 0xB0 ... 0xB7: //OR n
             OR_n(registers.getU8(registerOpcodes[opcode-0xB0]));
@@ -214,12 +203,14 @@ void GB::step()
             break;
         case 0xEE: //XOR #
             XOR_n(pcPopU8());
+            break;
         //CP
         case 0xB8 ... 0xBF: //CP n
             XOR_n(registers.getU8(registerOpcodes[opcode-0xB8]));
             break;
         case 0xFE: //CP #
             XOR_n(pcPopU8());
+            break;
         
         //INC
         case 0x3C: //INC A
@@ -274,7 +265,7 @@ void GB::step()
     //16-Bit ALU
         //ADD HL,n
         case 0x09: case 0x19: case 0x29: case 0x39:
-            ADD16_HL_n(register16Opcodes[opcode>>8]);
+            ADD16_HL_n(register16Opcodes[opcode>>4]);
             break;
         //ADD SP,n
         case 0xE8:
@@ -282,11 +273,11 @@ void GB::step()
             break;
         //INC nn
         case 0x03: case 0x13: case 0x23: case 0x33:
-            INC_r(register16Opcodes[opcode>>8]);
+            INC16_nn(register16Opcodes[opcode>>4]);
             break;
         //DEC nn
         case 0x0B: case 0x1B: case 0x2B: case 0x3B:
-            DEC_r(register16Opcodes[opcode>>8]);
+            DEC16_nn(register16Opcodes[opcode>>4]);
             break;
     //Miscellaneous
         case 0x27: //DAA
@@ -321,7 +312,8 @@ void GB::step()
     //Rotates and shifts, Bit Operations
         //Many functions: instruction 0xCB changes depending on args
         //Luckily all decode easily
-        case 0xCB: {
+        case 0xCB:
+        {
             uint8_t arg = pcPopU8();
             switch (arg)
             {
@@ -351,23 +343,33 @@ void GB::step()
                 SRL_n(registerOpcodes[arg-0x38]);
                 break;
             //Bit Operations
-            case 0x40 ... 0x47: //BIT b,r
-                //TODO: debug width of b
-                BIT_b_r(pcPopU8(), registerOpcodes[arg-0x40]);
+            case 0x40 ... 0x7F: //BIT b,r
+                BIT_b_r((arg-0x40)>>3, registerOpcodes[arg%0x08]);
                 break;
-            case 0x80 ... 0x87: //RES b,r
-                //TODO: debug width of b
-                RES_b_r(pcPopU8(), registerOpcodes[arg-0x80]);
+            case 0x80 ... 0xBF: //RES b,r
+                RES_b_r((arg-0x80)>>3, registerOpcodes[arg%0x08]);
                 break;
-            case 0xC0 ... 0xC7: //SET b,r
-                //TODO: debug width of b
-                SET_b_r(pcPopU8(), registerOpcodes[arg-0xC0]);
+            case 0xC0 ... 0xFF: //SET b,r
+                SET_b_r((arg-0xC0)>>3, registerOpcodes[arg%0x08]);
                 break;
             default:
-                throw("0xCB bad arg");
+                throw std::runtime_error("0xCB bad arg");
             }
             break;
         }
+
+        case 0x07: //RLCA
+            RLCA();
+            break;
+        case 0x17: //RLA
+            RLA();
+            break;
+        case 0x0F: //RRCA
+            RRCA();
+            break;
+        case 0x1F: //RRA
+            RRA();
+            break;
 
     //Jumps
         case 0xC3: //JP nn
@@ -454,7 +456,8 @@ void GB::step()
             break;
     
     default:
-        throw("Bad operation :-(");
+        std::cerr << "Bad operation" << static_cast<unsigned int>(opcode) << std::endl;
+        throw std::runtime_error("Bad opcode");
         break;
     }
 
