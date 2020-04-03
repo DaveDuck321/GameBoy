@@ -10,38 +10,15 @@ const std::array<Register, 4> register16Opcodes = {
     Register::BC, Register::DE, Register::HL, Register::SP
 };
 
-void GB::step()
+void GB::nextOP()
 {
-    //Check for interrupts
-    if(registers.IME)
-    {
-        uint8_t triggered = readU8(0xFFFF) & readU8(0xFF0F) & 0x1F;
-        if(triggered)
-        {
-            registers.halt = false;
-            registers.IME = false;
-            if(triggered & 0x01)       CALL_nn(0x40);
-            else if(triggered & 0x02)  CALL_nn(0x48);
-            else if(triggered & 0x04)  CALL_nn(0x50);
-            else if(triggered & 0x08)  CALL_nn(0x58);
-            else if(triggered & 0x10)  CALL_nn(0x60);
-        }
-    }
-
-    //Do nothing if waiting for interrupt
-    if(registers.halt) return;
-
-    std::cout << std::hex;
-    std::cout << "0x" << registers.pc << ":" <<std::endl;
-    uint8_t opcode = pcPopU8(false);
-    std::cout << "  OP: 0x" << (int)opcode <<std::endl;
-
+    uint8_t opcode = nextU8();
     switch(opcode)
     {
     //8-Bit loads
         //LD nn,n
         case 0x06: case 0x0E: case 0x16: case 0x1E: case 0x26: case 0x2E: case 0x36:
-            LD_n_nn(registerOpcodes[(opcode-0x06)>>3], pcPopU8());
+            LD_n_nn(registerOpcodes[(opcode-0x06)>>3], nextU8());
             break;
         //LD r1,r2
         case 0x78 ... 0x7F: //LD a, n
@@ -76,10 +53,10 @@ void GB::step()
             LD_r1_r2(Register::A, Register::DE_ptr);
             break;
         case 0xFA: //LD A, (nn)
-            LD_n_nn(Register::A, pcPopU16());
+            LD_n_nn(Register::A, nextU16());
             break;
         case 0x3E: //LD A, #
-            LD_n_nn(Register::A, pcPopU8());
+            LD_n_nn(Register::A, nextU8());
             break;
         //LD n, A
         case 0X47: case 0X4F: case 0X57: case 0X5F: case 0X67: case 0X6F: case 0x77:
@@ -92,7 +69,7 @@ void GB::step()
             LD_r_A(Register::DE_ptr);
             break;
         case 0xEA: //LD (nn),A
-            LD_n_A(pcPopU16());
+            LD_n_A(nextU16());
             break;
         case 0xF2: //LD A,(C)
             LD_A_C();
@@ -113,24 +90,24 @@ void GB::step()
             LDI_HL_A();
             break;
         case 0xE0: //LDH (n),A
-            LDH_n_A(pcPopU8());
+            LDH_n_A(nextU8());
             break;
         case 0xF0: //LDH A,(n)
-            LDH_A_n(pcPopU8());
+            LDH_A_n(nextU8());
             break;
     //16-Bit loads
         //LD n,nn
         case 0x01: case 0x11: case 0x21: case 0x31:
-            LD16_n_nn(register16Opcodes[opcode>>4], pcPopU16());
+            LD16_n_nn(register16Opcodes[opcode>>4], nextU16());
             break;
         case 0xF9: //LD SP,HL
             LD16_SP_HL();
             break;
         case 0xF8: //LDHL SP,n
-            LD16_SP_n(pcPopU8());
+            LD16_SP_n(nextU8());
             break;
         case 0x08: //LD (nn),SP
-            LD_nn_SP(pcPopU16());
+            LD_nn_SP(nextU16());
             break;
         //PUSH
         case 0xF5: //PUSH AF
@@ -164,21 +141,21 @@ void GB::step()
             ADD_n(registers.getU8(registerOpcodes[opcode-0x80]));
             break;
         case 0xC6: // Add A, #
-            ADD_n(pcPopU8());
+            ADD_n(nextU8());
             break;
         //ADC
         case 0x88 ... 0x8F: //ADC A, n
             ADC_n(registers.getU8(registerOpcodes[opcode-0x88]));
             break;
         case 0xCE: //ADC A, #
-            ADC_n(pcPopU8());
+            ADC_n(nextU8());
             break;
         //SUB
         case 0x90 ... 0x97: //SUB n
             SUB_n(registers.getU8(registerOpcodes[opcode-0x90]));
             break;
         case 0xD6: //SUB #
-            SUB_n(pcPopU8());
+            SUB_n(nextU8());
             break;
         //SBC
         case 0x98 ... 0x9F: //SBC A,n
@@ -189,27 +166,28 @@ void GB::step()
             ADD_n(registers.getU8(registerOpcodes[opcode-0xA0]));
             break;
         case 0xE6: //AND #
-            AND_n(pcPopU8());
+            AND_n(nextU8());
             break;
         //OR
         case 0xB0 ... 0xB7: //OR n
             OR_n(registers.getU8(registerOpcodes[opcode-0xB0]));
             break;
         case 0xF6: //OR #
-            OR_n(pcPopU8());
+            OR_n(nextU8());
+            break;
         //XOR
         case 0xA8 ... 0xAF: //XOR n
             XOR_n(registers.getU8(registerOpcodes[opcode-0xA8]));
             break;
         case 0xEE: //XOR #
-            XOR_n(pcPopU8());
+            XOR_n(nextU8());
             break;
         //CP
         case 0xB8 ... 0xBF: //CP n
             XOR_n(registers.getU8(registerOpcodes[opcode-0xB8]));
             break;
         case 0xFE: //CP #
-            XOR_n(pcPopU8());
+            XOR_n(nextU8());
             break;
         
         //INC
@@ -237,6 +215,7 @@ void GB::step()
         case 0x34: //INC (HL)
             INC_r(Register::HL_ptr);
             break;
+
         //DEC
         case 0x3D: //DEC A
             DEC_r(Register::A);
@@ -262,6 +241,7 @@ void GB::step()
         case 0x35: //DEC (HL)
             DEC_r(Register::HL_ptr);
             break;
+
     //16-Bit ALU
         //ADD HL,n
         case 0x09: case 0x19: case 0x29: case 0x39:
@@ -269,7 +249,7 @@ void GB::step()
             break;
         //ADD SP,n
         case 0xE8:
-            ADD16_SP_n(pcPopU8());
+            ADD16_SP_n(nextU8());
             break;
         //INC nn
         case 0x03: case 0x13: case 0x23: case 0x33:
@@ -279,6 +259,7 @@ void GB::step()
         case 0x0B: case 0x1B: case 0x2B: case 0x3B:
             DEC16_nn(register16Opcodes[opcode>>4]);
             break;
+
     //Miscellaneous
         case 0x27: //DAA
             DAA();
@@ -314,7 +295,7 @@ void GB::step()
         //Luckily all decode easily
         case 0xCB:
         {
-            uint8_t arg = pcPopU8();
+            uint8_t arg = nextU8();
             switch (arg)
             {
             //Rotates and Shifts
@@ -373,58 +354,58 @@ void GB::step()
 
     //Jumps
         case 0xC3: //JP nn
-            JP_nn(pcPopU16());
+            JP_nn(nextU16());
             break;
         //JP cc,nn
         case 0xC2: //JP NZ, nn
-            JP_cc_nn(Flag::Z, false, pcPopU16());
+            JP_cc_nn(Flag::Z, false, nextU16());
             break;
         case 0xCA: //JP Z, nn
-            JP_cc_nn(Flag::Z, true, pcPopU16());
+            JP_cc_nn(Flag::Z, true, nextU16());
             break;
         case 0xD2: //JP NC, nn
-            JP_cc_nn(Flag::C, false, pcPopU16());
+            JP_cc_nn(Flag::C, false, nextU16());
             break;
         case 0xDA: //JP C, nn
-            JP_cc_nn(Flag::C, true, pcPopU16());
+            JP_cc_nn(Flag::C, true, nextU16());
             break;
 
         case 0xE9: //JP (HL)
             JP_HL();
             break;
         case 0x18: //JR n
-            JR_n(pcPopU8());
+            JR_n(nextU8());
             break;
         //JR cc,n
         case 0x20: //JR NZ, n
-            JR_cc_n(Flag::Z, false, pcPopU8());
+            JR_cc_n(Flag::Z, false, nextU8());
             break;
         case 0x28: //JR Z, n
-            JR_cc_n(Flag::Z, true, pcPopU8());
+            JR_cc_n(Flag::Z, true, nextU8());
             break;
         case 0x30: //JR NC, n
-            JR_cc_n(Flag::C, false, pcPopU8());
+            JR_cc_n(Flag::C, false, nextU8());
             break;
         case 0x38: //JR C, n
-            JR_cc_n(Flag::C, true, pcPopU8());
+            JR_cc_n(Flag::C, true, nextU8());
             break;
 
     //CALLS
         case 0xCD: //CALL nn
-            CALL_nn(pcPopU16());
+            CALL_nn(nextU16());
             break;
         //CALL cc, nn
         case 0xC4: //CALL NZ, nn
-            CALL_cc_nn(Flag::Z, false, pcPopU16());
+            CALL_cc_nn(Flag::Z, false, nextU16());
             break;
         case 0xCC: //CALL Z, nn
-            JR_cc_n(Flag::Z, true, pcPopU16());
+            JR_cc_n(Flag::Z, true, nextU16());
             break;
         case 0xD4: //CALL NC, nn
-            JR_cc_n(Flag::C, false, pcPopU16());
+            JR_cc_n(Flag::C, false, nextU16());
             break;
         case 0xDC: //CALL C, nn
-            JR_cc_n(Flag::C, true, pcPopU16());
+            JR_cc_n(Flag::C, true, nextU16());
             break;
 
     //Restarts
@@ -460,5 +441,4 @@ void GB::step()
         throw std::runtime_error("Bad opcode");
         break;
     }
-
 }

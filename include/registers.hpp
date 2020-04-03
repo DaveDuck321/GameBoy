@@ -37,15 +37,18 @@ class CPURegisters
     uint16_t sp, pc;
     bool IME, halt;
 
-    CPURegisters(GB *gb):gb(gb){};
+    CPURegisters(GB *gb);
 
-    bool getFlags(Flag flag);
+    void printFlags() const;
+    bool getFlags(Flag flag) const;
+
     void setFlags(Flag flag, bool set);
     void setFlags(Flag flag);
     void resetFlags(Flag flag);
 
-    uint8_t getU8(Register r);
-    uint16_t getU16(Register r);
+    uint8_t getU8(Register r) const;
+    uint16_t getU16(Register r) const;
+
 
     void setU8(Register r, int8_t value);
     void setU16(Register r, int16_t value);

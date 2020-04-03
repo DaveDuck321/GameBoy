@@ -7,7 +7,28 @@ Flag operator | (Flag f1, Flag f2){
     );
 }
 
-bool CPURegisters::getFlags(Flag flag)
+CPURegisters::CPURegisters(GB *gb): gb(gb)
+{
+    //Power up sequence (from http://bgb.bircd.org/pandocs.htm)
+    setU16(Register::AF, 0x01B0);
+    setU16(Register::BC, 0x0013);
+    setU16(Register::DE, 0x00D8);
+    setU16(Register::HL, 0x014D);
+    sp = 0xFFFE;
+    pc = 0x0100;    //Start at 0x100
+    IME = true;     //Start with interrupts enabled
+    halt = false;   //Runs normally to begin with
+}
+
+void CPURegisters::printFlags() const
+{
+    std::cout << "Z: " << getFlags(Flag::Z) << std::endl;
+    std::cout << "N: " << getFlags(Flag::N) << std::endl;
+    std::cout << "H: " << getFlags(Flag::H) << std::endl;
+    std::cout << "C: " << getFlags(Flag::C) << std::endl;
+}
+
+bool CPURegisters::getFlags(Flag flag) const
 {
     return f & static_cast<uint8_t>(flag);
 }
@@ -28,7 +49,7 @@ void CPURegisters::resetFlags(Flag flag)
     f = f & ~static_cast<uint8_t>(flag);
 }
 
-uint8_t CPURegisters::getU8(Register r)
+uint8_t CPURegisters::getU8(Register r) const
 {
     switch(r)
     {
@@ -89,7 +110,7 @@ void CPURegisters::setU8(Register r, int8_t value)
     }
 }
 
-uint16_t CPURegisters::getU16(Register r)
+uint16_t CPURegisters::getU16(Register r) const
 {
     switch (r)
     {
