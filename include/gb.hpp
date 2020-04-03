@@ -2,7 +2,7 @@
 #define gb_hpp
 
 #include <memory>
-#include <array>
+#include "memory.hpp"
 #include "registers.hpp"
 #include "cartridge.hpp"
 
@@ -15,24 +15,26 @@ class GB
 {
     public:
     Cartridge &cartridge;
+    Memory memory;
     CPURegisters registers;
-
-    std::array<uint8_t, 0x7F> stack;
-    std::array<uint8_t, 0x7F> IO;
-    std::array<uint8_t, 0x1FFF> workingRam;
 
     public:
     GB(Cartridge &cartridge);
     ~GB();
 
-    uint8_t pcPopU8(bool debug=true);
-    uint16_t pcPopU16();
+    uint8_t nextU8();
+    uint16_t nextU16();
 
     uint8_t readU8(uint16_t addr) const;
     uint16_t readU16(uint16_t addr) const;
+
     void writeU8(uint16_t addr, uint8_t value);
     void writeU16(uint16_t addr, uint16_t value);
-    void step();
+
+    void update();
+
+    void handleInterrupts();
+    void nextOP();
 
     //Debug
     void printFlags();
