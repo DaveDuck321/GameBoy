@@ -9,9 +9,9 @@ class Memory
     private:
     Cartridge &cartridge;
 
-    std::array<uint8_t, 0x7F> stack;
-    std::array<uint8_t, 0x7F> IO;
-    std::array<uint8_t, 0x1FFF> workingRam;
+    std::array<uint8_t, 0x80> stack;
+    std::array<uint8_t, 0x80> IO;
+    std::array<uint8_t, 0x2000> workingRam;
 
     public:
     Memory(Cartridge &cartridge);

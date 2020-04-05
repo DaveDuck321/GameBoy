@@ -6,18 +6,15 @@
 
 class Controller
 {
-    public:
+    protected:
     std::vector<uint8_t> rom;
 
-    Controller(std::vector<uint8_t>&& rom): rom(rom)
-    {
-        
-    }
+    public:
+    Controller(std::vector<uint8_t>&& rom): rom(rom) {}
 
-    virtual uint8_t read(uint8_t addr) const
+    virtual uint8_t read(uint16_t addr) const
     {
-        if(addr < 0x4000) return rom[addr];
-        throw std::range_error("Could not read memory location in ROM");
+        return rom[addr];
     }
 
     virtual void write(uint16_t addr, uint8_t value)

@@ -52,7 +52,7 @@ uint8_t Memory::read(uint16_t addr) const
         break;
     case 0xA000 ... 0xBFFF:
         // External ram
-        throw std::runtime_error("External ram not implemented");
+        cartridge.read(addr);
         break;
     case 0xC000 ... 0xDFFF:
         // Work ram 2
@@ -75,8 +75,8 @@ uint8_t Memory::read(uint16_t addr) const
         // High ram
         return stack[addr - 0xFF80];
     case 0xFFFF:
-        // Interrupt Enable Register
-        break;
+        // Interrupts enabled Register
+        return stack[0x7F];
     default:
         std::cout << "Impossible memory address: " << addr << std::endl;
         throw std::range_error("Impossible memory address");
@@ -89,7 +89,7 @@ void Memory::write(uint16_t addr, uint8_t value)
     {
     case 0x0000 ... 0x7FFF:
         // Rom
-        cartridge.read(addr);
+        cartridge.write(addr, value);
         break;
     case 0x8000 ... 0x9FFF:
         // Video Ram
@@ -97,7 +97,7 @@ void Memory::write(uint16_t addr, uint8_t value)
         break;
     case 0xA000 ... 0xBFFF:
         // External ram
-        throw std::runtime_error("External ram not implemented");
+        cartridge.write(addr, value);
         break;
     case 0xC000 ... 0xDFFF:
         // Work ram 2
@@ -124,7 +124,8 @@ void Memory::write(uint16_t addr, uint8_t value)
         stack[addr - 0xFF80] = value;
         break;
     case 0xFFFF:
-        // Interrupt Enable Register
+        // Interrupts enabled Register
+        stack[0x7F] = value;
         break;
     default:
         std::cout << "Impossible memory address: " << addr << std::endl;

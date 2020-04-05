@@ -1,4 +1,6 @@
 #include "cartridge.hpp"
+#include "controller.hpp"
+#include "controllers/mbc1.hpp"
 
 #include <memory>
 #include <fstream>
@@ -17,8 +19,22 @@ Cartridge Cartridge::loadRom(const std::string& name)
 
 Cartridge::Cartridge(std::vector<uint8_t>&& rom)
 {
-    //populateMetadata(rom);
-    controller = std::make_unique<Controller>(std::move(rom));
+    populateMetadata(rom);
+    switch(cartridgeType)
+    {
+        case 0: // ROM only
+            controller = std::make_unique<Controller>(
+                std::move(rom)
+            );
+            break;
+        case 1: case 2: case 3: // MBC1 Controller
+            controller = std::make_unique<MBC1>(
+                std::move(rom)
+            );
+            break;
+        default:
+            throw std::runtime_error("Cartridge controller not implemented");
+    }
 }
 
 void Cartridge::populateMetadata(const std::vector<uint8_t>& rom)
@@ -49,7 +65,7 @@ void Cartridge::populateMetadata(const std::vector<uint8_t>& rom)
 
 uint8_t Cartridge::read(uint16_t addr) const
 {
-    controller->read(addr);
+    return controller->read(addr);
 }
 
 void Cartridge::write(uint16_t addr, uint8_t value)
