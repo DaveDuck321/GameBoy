@@ -105,6 +105,12 @@ void CPURegisters::setU8(Register r, int8_t value)
     case Register::HL_ptr:
         gb->writeU8(getU16(Register::HL), value);
         break;
+    case Register::BC_ptr:
+        gb->writeU8(getU16(Register::BC), value);
+        break;
+    case Register::DE_ptr:
+        gb->writeU8(getU16(Register::DE), value);
+        break;
     default:
         throw std::runtime_error("Bad register setU8 enum");
     }
