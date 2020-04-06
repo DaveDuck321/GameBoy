@@ -7,10 +7,10 @@
 class Controller
 {
     protected:
-    std::vector<uint8_t> rom;
+    const std::vector<uint8_t> &rom;
 
     public:
-    Controller(std::vector<uint8_t>&& rom): rom(rom) {}
+    Controller(const std::vector<uint8_t>& rom): rom(rom) {}
 
     virtual uint8_t read(uint16_t addr) const
     {

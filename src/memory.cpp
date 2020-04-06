@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-Memory::Memory(Cartridge &cartridge): cartridge(cartridge)
+Memory::Memory(Cartridge &cartridge, IO &io): cartridge(cartridge), io(io)
 {
     //Power up sequence (from http://bgb.bircd.org/pandocs.htm)
     write(0xFF05, 0x00); //TIMA
@@ -44,16 +44,13 @@ uint8_t Memory::read(uint16_t addr) const
     {
     case 0x0000 ... 0x7FFF:
         // Rom
-        cartridge.read(addr);
-        break;
+        return cartridge.read(addr);
     case 0x8000 ... 0x9FFF:
         // Video Ram
         throw std::runtime_error("Video not implemented");
-        break;
     case 0xA000 ... 0xBFFF:
         // External ram
-        cartridge.read(addr);
-        break;
+        return cartridge.read(addr);
     case 0xC000 ... 0xDFFF:
         // Work ram 2
         return workingRam[addr-0xC000];
@@ -63,14 +60,12 @@ uint8_t Memory::read(uint16_t addr) const
     case 0xFE00 ... 0xFE9F:
         // Sprite Attribute Table
         throw std::runtime_error("Sprites not implemented");
-        break;
     case 0xFEA0 ... 0xFEFF:
         // Not Usable
         throw std::runtime_error("Bad ram address");
-        break;
     case 0xFF00 ... 0xFF7F:
         //IO ports
-        return IO[addr - 0xFF00];
+        return io.read(addr);
     case 0xFF80 ... 0xFFFE:
         // High ram
         return stack[addr - 0xFF80];
@@ -93,7 +88,9 @@ void Memory::write(uint16_t addr, uint8_t value)
         break;
     case 0x8000 ... 0x9FFF:
         // Video Ram
-        throw std::runtime_error("Video not implemented");
+        //std::cout << "Requested write to address: " << addr << std::endl;
+        //std::cout << "(0x"<<addr << ", 0x" << (int)value << "),";
+        //throw std::runtime_error("Video not implemented");
         break;
     case 0xA000 ... 0xBFFF:
         // External ram
@@ -117,7 +114,7 @@ void Memory::write(uint16_t addr, uint8_t value)
         break;
     case 0xFF00 ... 0xFF7F:
         //IO ports
-        IO[addr - 0xFF00] = value;
+        io.write(addr, value);
         break;
     case 0xFF80 ... 0xFFFE:
         // High ram

@@ -8,28 +8,28 @@
 Cartridge Cartridge::loadRom(const std::string& name)
 {
     std::ifstream input(name, std::ios::binary);
-    
+
     return Cartridge(
         std::vector<uint8_t>(
             std::istreambuf_iterator<char>(input),
             {}
         )
     );
-};
+}
 
-Cartridge::Cartridge(std::vector<uint8_t>&& rom)
+Cartridge::Cartridge(std::vector<uint8_t>&& rom): rom(rom)
 {
-    populateMetadata(rom);
+    populateMetadata(this->rom);
     switch(cartridgeType)
     {
         case 0: // ROM only
             controller = std::make_unique<Controller>(
-                std::move(rom)
+                this->rom
             );
             break;
         case 1: case 2: case 3: // MBC1 Controller
             controller = std::make_unique<MBC1>(
-                std::move(rom)
+                this->rom
             );
             break;
         default:

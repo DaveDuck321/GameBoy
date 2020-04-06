@@ -1,11 +1,12 @@
 #include "gb.hpp"
 
+//#include <SDL2/SDL.h>
 #include <iostream>
 
 GB::GB(Cartridge &cartridge):
     cartridge(cartridge),
-    memory(cartridge),
-    registers(this)
+    registers(this),
+    memory(cartridge, io)
 {
 
 }
@@ -105,15 +106,27 @@ void GB::update()
 }
 
 
-int main()
+int main( int argc, char *argv[] )
 {
-    Cartridge card = Cartridge::loadRom("tests/test.gb");
+    /*
+    SDL_Init(SDL_INIT_EVERYTHING);
+    SDL_Window *window = SDL_CreateWindow("Gameboy", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 600, 400, SDL_WINDOW_SHOWN);
+
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
+    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+    SDL_RenderClear(renderer);
+
+    SDL_RenderPresent(renderer);
+    SDL_Delay(3000);*/
+
+    Cartridge card = Cartridge::loadRom("tests/cpu_instrs.gb");
     GB gb(card);
     std::cout << std::hex;
-    std::cout << (int)card.cartridgeType << std::endl;
 
-    for(int i = 0; i < 100; i++)
+    for(int i = 0; i < 1000000; i++) {
+        std::cout << i << ") ";
         gb.update();
+    }
 
     return EXIT_SUCCESS;
 }

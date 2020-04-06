@@ -13,6 +13,7 @@
 class Cartridge
 {
     private:
+    std::vector<uint8_t> rom;
     std::unique_ptr<Controller> controller;
 
     uint8_t cartridgeType; //Enum of cartridge technologies

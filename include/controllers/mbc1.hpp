@@ -23,7 +23,7 @@ class MBC1: public Controller
     std::array<uint8_t, 0x8000> ram;
 
     public:
-    MBC1(std::vector<uint8_t>&& rom): Controller(std::move(rom)) {}
+    MBC1(const std::vector<uint8_t>& rom): Controller(rom) {}
 
     uint8_t read(uint16_t addr) const override
     {
