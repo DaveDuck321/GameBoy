@@ -20,6 +20,20 @@ CPURegisters::CPURegisters(GB *gb): gb(gb)
     halt = false;   //Runs normally to begin with
 }
 
+void CPURegisters::printRegs() const
+{
+    std::cout << "Regs: ";
+    std::cout << (int)a;
+    std::cout << (int)b;
+    std::cout << (int)c;
+    std::cout << (int)d;
+    std::cout << (int)e;
+    std::cout << (int)f;
+    std::cout << (int)h;
+    std::cout << (int)l;
+    std::cout <<std::endl;
+}
+
 void CPURegisters::printFlags() const
 {
     std::cout << "Z: " << getFlags(Flag::Z) << std::endl;
@@ -73,8 +87,9 @@ uint8_t CPURegisters::getU8(Register r) const
         return gb->readU8(getU16(Register::BC));
     case Register::DE_ptr:
         return gb->readU8(getU16(Register::DE));
+    default:
+        throw std::runtime_error("Bad register getU8 enum");
     }
-    throw std::runtime_error("Bad register getU8 enum");
 }
 
 void CPURegisters::setU8(Register r, int8_t value)
@@ -132,8 +147,9 @@ uint16_t CPURegisters::getU16(Register r) const
         return sp;
     case Register::PC:
         return pc;
+    default:
+        throw std::runtime_error("Bad register getU16 enum");
     }
-    throw std::runtime_error("Bad register getU16 enum");
 }
 
 void CPURegisters::setU16(Register r, int16_t value)

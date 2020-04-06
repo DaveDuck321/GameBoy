@@ -40,6 +40,7 @@ class CPURegisters
     CPURegisters(GB *gb);
 
     void printFlags() const;
+    void printRegs() const;
     bool getFlags(Flag flag) const;
 
     void setFlags(Flag flag, bool set);
