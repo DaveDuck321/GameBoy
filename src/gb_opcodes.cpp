@@ -12,13 +12,17 @@ const std::array<Register, 4> register16Opcodes = {
 
 void GB::nextOP()
 {
+    std::cout << "SP: " << (int)registers.sp;
+    std::cout << "ADDR: " << (int)registers.pc;
     uint8_t opcode = nextU8();
+    std::cout << "OPCODE: " << (int)opcode;
+    registers.printRegs();
     switch(opcode)
     {
     //8-Bit loads
         //LD nn,n
         case 0x06: case 0x0E: case 0x16: case 0x1E: case 0x26: case 0x2E: case 0x36:
-            LD_n_nn(registerOpcodes[(opcode-0x06)>>3], nextU8());
+            LD_r_n(registerOpcodes[(opcode-0x06)>>3], nextU8());
             break;
         //LD r1,r2
         case 0x78 ... 0x7F: //LD a, n
@@ -53,10 +57,10 @@ void GB::nextOP()
             LD_r1_r2(Register::A, Register::DE_ptr);
             break;
         case 0xFA: //LD A, (nn)
-            LD_n_nn(Register::A, nextU16());
+            LD_r_nn(Register::A, nextU16());
             break;
         case 0x3E: //LD A, #
-            LD_n_nn(Register::A, nextU8());
+            LD_r_n(Register::A, nextU8());
             break;
         //LD n, A
         case 0X47: case 0X4F: case 0X57: case 0X5F: case 0X67: case 0X6F: case 0x77:
@@ -69,7 +73,7 @@ void GB::nextOP()
             LD_r_A(Register::DE_ptr);
             break;
         case 0xEA: //LD (nn),A
-            LD_n_A(nextU16());
+            LD_nn_A(nextU16());
             break;
         case 0xF2: //LD A,(C)
             LD_A_C();

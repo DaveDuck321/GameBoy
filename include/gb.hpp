@@ -7,16 +7,18 @@
 #include "cartridge.hpp"
 
 //http://bgb.bircd.org/pandocs.htm
-//https://gekkio.fi/files/gb-docs/gbctr.pdf
 //http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
 //https://github.com/gbdev/awesome-gbdev#testing
+//https://pastraiser.com/cpu/gameboy/gameboy_opcodes.html
 
 class GB
 {
     public:
     Cartridge &cartridge;
-    Memory memory;
     CPURegisters registers;
+    IO io;
+
+    Memory memory;
 
     public:
     GB(Cartridge &cartridge);
@@ -41,15 +43,18 @@ class GB
 
     private:
     // 8-Bit loads
-        // LD n, nn
-        void LD_n_nn(Register n, uint8_t nn);
+        // LD r, n
+        void LD_r_n(Register r, uint8_t n);
+
+        //LD r, (nn)
+        void LD_r_nn(Register r, uint16_t nn);
 
         //LD r1, r1
         void LD_r1_r2(Register r1, Register r2);
 
         //LD n, A
         void LD_r_A(Register r);
-        void LD_n_A(uint8_t addr);
+        void LD_nn_A(uint16_t addr);
 
         //LD A,(C)
         void LD_A_C();
@@ -86,7 +91,7 @@ class GB
         void LD16_SP_n(int8_t n);
 
         //LD nn,SP
-        void LD_nn_SP(int16_t nn);
+        void LD_nn_SP(uint16_t nn);
 
         //PUSH nn
         void PUSH(Register r);
@@ -133,7 +138,7 @@ class GB
         void ADD16_HL_n(Register n);
 
         //ADD SP,n
-        void ADD16_SP_n(uint8_t n);
+        void ADD16_SP_n(int8_t n);
 
         //INC nn
         void INC16_nn(Register nn);
@@ -234,21 +239,21 @@ class GB
         void JP_HL();
 
         //JR n
-        void JR_n(uint8_t n);
+        void JR_n(int8_t n);
 
         //JR cc,n
-        void JR_cc_n(Flag f, bool set, uint8_t n);
+        void JR_cc_n(Flag f, bool set, int8_t n);
     
     //Calls
         //CALL nn
-        void CALL_nn(int16_t nn);
+        void CALL_nn(uint16_t nn);
 
         //CALL cc,nn
         void CALL_cc_nn(Flag f, bool set, uint16_t nn);
     
     //Restarts
         //RST n
-        void RST_n(int8_t n);
+        void RST_n(uint8_t n);
     
     //Returns
         //RET
