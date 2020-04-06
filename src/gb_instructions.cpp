@@ -1,16 +1,27 @@
 #include "gb.hpp"
 
-void GB::LD_n_nn(Register n, uint8_t nn)
+void GB::LD_r_n(Register r, uint8_t n)
 {
-    //TODO: Check this very strange convention
     /*
     Description:
-        Put value nn into n.
+        Put value n into r.
     Use with:
-        n = B,C,D,E,H,L  nn = 8 bit immediate value
+        n = B,C,D,E,H,L
+        nn = 8 bit immediate value
     */
-    registers.setU8(n, nn);
-    //write(n, registers.getU8(nn));
+    registers.setU8(r, n);
+}
+
+void GB::LD_r_nn(Register r, uint16_t nn)
+{
+    /*
+    Description:
+        Put value nn into r.
+    Use with:
+        r = A,B,C,D,E,H,L,(HL)
+        nn = 16 bit immediate value
+    */
+    registers.setU8(r, readU8(nn));
 }
 
 void GB::LD_r1_r2(Register r1, Register r2)
@@ -35,11 +46,11 @@ void GB::LD_r_A(Register r)
     */
     registers.setU8(r, registers.a);
 }
-void GB::LD_n_A(uint8_t addr)
+void GB::LD_nn_A(uint16_t addr)
 {
     /*
     Description:
-        Put value A into n (memory).
+        Put value A into addr (memory).
     Use with:
         n = (BC),(DE),(HL),(nn)
         nn = two byte immediate value. (LS byte first.)
@@ -182,7 +193,7 @@ void GB::LD16_SP_n(int8_t n)
     //TODO: debug potential error here, flags for carry look wrong
 }
 
-void GB::LD_nn_SP(int16_t nn)
+void GB::LD_nn_SP(uint16_t nn)
 {
     /*
     Description:
@@ -256,7 +267,7 @@ void GB::ADC_n(uint8_t n)
         H - Set if carry from bit 3.
         C - Set if carry from bit 7
     */
-    ADD_n(n + registers.getFlags(Flag::C));
+    ADD_n(n + registers.getFlags(Flag::C)); //TODO: fix carry when n
 }
 
 void GB::SUB_n(uint8_t n)
@@ -387,7 +398,7 @@ void GB::INC_r(Register r)
     uint8_t result = registers.getU8(r)+1;
     registers.setU8(r, result);
     registers.setFlags(Flag::Z, result==0);
-    registers.setFlags(Flag::H, result&0x0F == 0);
+    registers.setFlags(Flag::H, (result&0x0F) == 0);
     registers.resetFlags(Flag::N);
 }
 
@@ -408,7 +419,7 @@ void GB::DEC_r(Register r)
     uint8_t result = registers.getU8(r)-1;
     registers.setU8(r, result);
     registers.setFlags(Flag::Z, result==0);
-    registers.setFlags(Flag::H, result&0x0F != 0);
+    registers.setFlags(Flag::H, (result&0x0F) != 0);
     registers.setFlags(Flag::N);
 }
 
@@ -450,7 +461,7 @@ void GB::ADD16_HL_n(Register n)
     registers.setU16(Register::HL, ADD16(hl_val, n_val));
 }
 
-void GB::ADD16_SP_n(uint8_t n)
+void GB::ADD16_SP_n(int8_t n)
 {
     /*
     Description:
@@ -463,8 +474,10 @@ void GB::ADD16_SP_n(uint8_t n)
         H - Set or reset according to operation.
         C - Set or reset according to operation.
     */
-    registers.sp = ADD16(registers.sp, n);
-    registers.resetFlags(Flag::Z);
+    //TODO set flags right
+    registers.resetFlags(Flag::N|Flag::Z);
+
+    registers.sp = registers.sp + n;
 }
 
 void GB::INC16_nn(Register nn)
@@ -509,7 +522,7 @@ void GB::SWAP_n(Register n)
     uint8_t value = registers.getU8(n);
     registers.setFlags(Flag::Z, value==0);
     registers.resetFlags(Flag::N|Flag::H|Flag::C);
-    registers.setU8(n, (value&0x0F)<<8 + (value&0xF0)>>8);
+    registers.setU8(n, ((value&0x0F)<<8) + ((value&0xF0)>>8));
 }
 
 void GB::DAA()
@@ -968,7 +981,7 @@ void GB::JP_HL()
     JP_nn(registers.getU16(Register::HL));
 }
 
-void GB::JR_n(uint8_t n)
+void GB::JR_n(int8_t n)
 {
     /*
     Description:
@@ -979,7 +992,7 @@ void GB::JR_n(uint8_t n)
     JP_nn(registers.pc+n);
 }
 
-void GB::JR_cc_n(Flag f, bool set, uint8_t n)
+void GB::JR_cc_n(Flag f, bool set, int8_t n)
 {
     /*
     Description:
@@ -994,7 +1007,7 @@ void GB::JR_cc_n(Flag f, bool set, uint8_t n)
     JP_cc_nn(f, set, registers.pc+n);
 }
 
-void GB::CALL_nn(int16_t nn)
+void GB::CALL_nn(uint16_t nn)
 {
     /*
     Description:
@@ -1022,7 +1035,7 @@ void GB::CALL_cc_nn(Flag f, bool set, uint16_t nn)
     if(registers.getFlags(f) == set) CALL_nn(nn);
 }
 
-void GB::RST_n(int8_t n)
+void GB::RST_n(uint8_t n)
 {
     /*
     Description:
