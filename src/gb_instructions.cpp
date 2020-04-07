@@ -201,7 +201,7 @@ void GB::LD_nn_SP(uint16_t nn)
     Use with:
         nn = two byte immediate address
     */
-    registers.sp = nn;
+    writeU16(nn, registers.sp);
 }
 
 void GB::PUSH(Register r)
@@ -419,7 +419,7 @@ void GB::DEC_r(Register r)
     uint8_t result = registers.getU8(r)-1;
     registers.setU8(r, result);
     registers.setFlags(Flag::Z, result==0);
-    registers.setFlags(Flag::H, (result&0x0F) != 0);
+    registers.setFlags(Flag::H, (result&0x0F) == 0x0F);
     registers.setFlags(Flag::N);
 }
 

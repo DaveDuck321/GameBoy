@@ -12,11 +12,11 @@ const std::array<Register, 4> register16Opcodes = {
 
 void GB::nextOP()
 {
-    std::cout << "SP: " << (int)registers.sp;
-    std::cout << "ADDR: " << (int)registers.pc;
     uint8_t opcode = nextU8();
-    std::cout << "OPCODE: " << (int)opcode;
-    registers.printRegs();
+    //std::cout << "op:" << (int)opcode<<", ";
+    //std::cout << "pc:" << (int)registers.pc <<", ";
+    //std::cout << "OPCODE:" << (int)opcode <<"  ";
+    //registers.printRegs();
     switch(opcode)
     {
     //8-Bit loads
@@ -188,10 +188,10 @@ void GB::nextOP()
             break;
         //CP
         case 0xB8 ... 0xBF: //CP n
-            XOR_n(registers.getU8(registerOpcodes[opcode-0xB8]));
+            CP_n(registers.getU8(registerOpcodes[opcode-0xB8]));
             break;
         case 0xFE: //CP #
-            XOR_n(nextU8());
+            CP_n(nextU8());
             break;
         
         //INC
