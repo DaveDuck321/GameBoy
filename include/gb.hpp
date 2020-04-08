@@ -7,21 +7,23 @@
 #include "cartridge.hpp"
 
 //http://bgb.bircd.org/pandocs.htm
-//http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
+//http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf <-- useful but dont trust
 //https://github.com/gbdev/awesome-gbdev#testing
+//https://rednex.github.io/rgbds/gbz80.7.html
 //https://pastraiser.com/cpu/gameboy/gameboy_opcodes.html
 
 class GB
 {
     public:
     Cartridge &cartridge;
+    Display &display;
     CPURegisters registers;
     IO io;
 
     Memory memory;
 
     public:
-    GB(Cartridge &cartridge);
+    GB(Cartridge &cartridge, Display &display);
     ~GB();
 
     uint8_t nextU8();

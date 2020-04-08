@@ -2,8 +2,11 @@
 
 #include <iostream>
 
-Memory::Memory(Cartridge &cartridge, IO &io): cartridge(cartridge), io(io)
+Memory::Memory(Cartridge &cartridge, IO &io, Display &display):
+    cartridge(cartridge), display(display), io(io)
 {
+    stack.fill(0xF4); //Debug checker
+    workingRam.fill(0xF4);
     //Power up sequence (from http://bgb.bircd.org/pandocs.htm)
     write(0xFF05, 0x00); //TIMA
     write(0xFF06, 0x00); //TMA
@@ -36,6 +39,8 @@ Memory::Memory(Cartridge &cartridge, IO &io): cartridge(cartridge), io(io)
     write(0xFF4A, 0x00); //WY
     write(0xFF4B, 0x00); //WX
     write(0xFFFF, 0x00); //IE
+
+    write(0xFF0F, 0x00); //Interrupts
 }
 
 uint8_t Memory::read(uint16_t addr) const
@@ -47,7 +52,7 @@ uint8_t Memory::read(uint16_t addr) const
         return cartridge.read(addr);
     case 0x8000 ... 0x9FFF:
         // Video Ram
-        throw std::runtime_error("Video not implemented");
+        return display.read(addr);
     case 0xA000 ... 0xBFFF:
         // External ram
         return cartridge.read(addr);
@@ -88,9 +93,7 @@ void Memory::write(uint16_t addr, uint8_t value)
         break;
     case 0x8000 ... 0x9FFF:
         // Video Ram
-        //std::cout << "Requested write to address: " << addr << std::endl;
-        //std::cout << "(0x"<<addr << ", 0x" << (int)value << "),";
-        //throw std::runtime_error("Video not implemented");
+        display.write(addr, value);
         break;
     case 0xA000 ... 0xBFFF:
         // External ram

@@ -1,12 +1,12 @@
 #include "gb.hpp"
-
-//#include <SDL2/SDL.h>
+#include "displays/sdl_display.hpp"
 #include <iostream>
 
-GB::GB(Cartridge &cartridge):
+GB::GB(Cartridge &cartridge, Display &display):
     cartridge(cartridge),
+    display(display),
     registers(this),
-    memory(cartridge, io)
+    memory(cartridge, io, display)
 {
 
 }
@@ -108,25 +108,18 @@ void GB::update()
 
 int main( int argc, char *argv[] )
 {
-    /*
-    SDL_Init(SDL_INIT_EVERYTHING);
-    SDL_Window *window = SDL_CreateWindow("Gameboy", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 600, 400, SDL_WINDOW_SHOWN);
-
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
-    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-    SDL_RenderClear(renderer);
-
-    SDL_RenderPresent(renderer);
-    SDL_Delay(3000);*/
-
-    Cartridge card = Cartridge::loadRom("tests/cpu_instrs.gb");
-    GB gb(card);
+    SDL_Display display;
+    Cartridge card = Cartridge::loadRom("tests/cpu_instrs/individual/04-op r,imm.gb");
+    GB gb(card, display);
     std::cout << std::hex;
 
-    for(int i = 0; i < 1000000; i++) {
-        std::cout << i << ") ";
+    for(int i = 0; ; i++) {
         gb.update();
+        if(i%10000 == 0)
+        {
+            gb.display.draw();
+        }
     }
-
+    std::cin.ignore();
     return EXIT_SUCCESS;
 }

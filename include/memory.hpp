@@ -2,20 +2,23 @@
 #define memory_h
 
 #include "cartridge.hpp"
+#include "display.hpp"
 #include "io.hpp"
+
 #include <array>
 
 class Memory
 {
     private:
     Cartridge &cartridge;
+    Display &display;
     IO &io;
 
     std::array<uint8_t, 0x80> stack;
     std::array<uint8_t, 0x2000> workingRam;
 
     public:
-    Memory(Cartridge &cartridge, IO &io);
+    Memory(Cartridge &cartridge, IO &io, Display &display);
     uint8_t read(uint16_t addr) const;
     void write(uint16_t addr, uint8_t value);
 };
