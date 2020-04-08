@@ -19,7 +19,12 @@ GB::~GB()
 uint8_t GB::readU8(uint16_t addr) const
 {
     // Reads an 8-Bit value from 'addr'
-    return memory.read(addr);
+    uint8_t value = memory.read(addr);
+    if(value == 0xF4)
+    {
+        std::cout<<"Potential uninitialised memory"<<std::endl;
+    }
+    return value;
 }
 
 uint16_t GB::readU16(uint16_t addr) const

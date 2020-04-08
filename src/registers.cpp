@@ -22,15 +22,15 @@ CPURegisters::CPURegisters(GB *gb): gb(gb)
 
 void CPURegisters::printRegs() const
 {
-    std::cout << "Regs: ";
+    std::cout << "registers:";
     std::cout << (int)a;
     std::cout << (int)b;
     std::cout << (int)c;
     std::cout << (int)d;
     std::cout << (int)e;
-    std::cout << (int)f;
-    std::cout << (int)h;
-    std::cout << (int)l;
+    std::cout << (int)getU16(Register::HL);
+    std::cout << (int)getU16(Register::SP);
+    std::cout << (int)getU16(Register::PC);
     std::cout <<std::endl;
 }
 

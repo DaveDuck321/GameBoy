@@ -18,6 +18,7 @@ class IO
     std::array<uint8_t, 0x4C> memory;
 
     public:
+    IO();
     void write(uint16_t addr, uint8_t value);
     uint8_t read(uint16_t addr);
 };

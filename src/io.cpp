@@ -2,6 +2,11 @@
 
 #include <iostream>
 
+IO::IO()
+{
+    memory.fill(0xF4); //For debuging
+}
+
 void IO::write(uint16_t addr, uint8_t value)
 {
     uint8_t offsetAddr = addr-OFFSET_ADDR;
@@ -13,12 +18,13 @@ void IO::write(uint16_t addr, uint8_t value)
         break;
     case 0xFF01:
         //SB -- Serial transfer data (r/w)
-        std::cout << "SB: "<< value <<std::endl;
+        //std::cout << "SB: "<< value <<std::endl;
+        std::cout<<value;
         memory[offsetAddr] = value;
         break;
     case 0xFF02:
         //SC -- SIO control (r/w)
-        std::cout << "SC!" <<std::endl;
+        //std::cout << "SC!" <<std::endl;
         memory[offsetAddr] = value;
         break;
     case 0xFF04:
@@ -152,6 +158,7 @@ uint8_t IO::read(uint16_t addr)
         return memory[offsetAddr];
     
     default:
-        throw std::runtime_error("Bad IO write address");
+        std::cout << std::endl;
+        throw std::runtime_error("Bad IO read address");
     }
 }
