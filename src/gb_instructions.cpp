@@ -436,7 +436,7 @@ uint16_t GB::ADD16(uint16_t n1, uint16_t n2)
         C - Set if carry from bit 15. 
     */
     registers.resetFlags(Flag::N);
-    registers.setFlags(Flag::H, (n2&0x400) > 0x400 - (n1&0x400));
+    registers.setFlags(Flag::H, (n2&0x0FFF) > (0x0FFF - (n1&0x0FFF)));
     registers.setFlags(Flag::C, n2 > 0xFFFF - n1);
     return n1+n2;
 }
