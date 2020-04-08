@@ -287,7 +287,7 @@ void GB::SUB_n(uint8_t n)
     registers.setFlags(Flag::C, registers.a - n < 0);
     registers.setFlags(Flag::H, (registers.a&0x0F) - (n&0x0F) < 0);
 
-    registers.a = registers.a+n;
+    registers.a = registers.a-n;
     registers.setFlags(Flag::Z, registers.a == 0);
     registers.setFlags(Flag::N);
 }
@@ -893,8 +893,8 @@ void GB::SRL_n(Register r)
         H - Reset.
         C - Contains old bit 0 data.
     */
-    int8_t value = registers.getU8(r);
-    int8_t result = (value>>1);
+    uint8_t value = registers.getU8(r);
+    uint8_t result = (value>>1);
     registers.setFlags(Flag::N|Flag::H);
     registers.setFlags(Flag::Z, result == 0);
     registers.setFlags(Flag::C, value&1);

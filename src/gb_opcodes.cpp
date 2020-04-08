@@ -14,8 +14,10 @@ void GB::nextOP()
 {
     uint8_t opcode = nextU8();
     //std::cout << "op:" << (int)opcode<<", ";
+    //std::cout << "next" << (int)nextU8()<<", ";
+    //registers.pc--;
     //std::cout << "pc:" << (int)registers.pc <<", ";
-    //std::cout << "OPCODE:" << (int)opcode <<"  ";
+
     //registers.printRegs();
     switch(opcode)
     {
@@ -403,13 +405,13 @@ void GB::nextOP()
             CALL_cc_nn(Flag::Z, false, nextU16());
             break;
         case 0xCC: //CALL Z, nn
-            JR_cc_n(Flag::Z, true, nextU16());
+            CALL_cc_nn(Flag::Z, true, nextU16());
             break;
         case 0xD4: //CALL NC, nn
-            JR_cc_n(Flag::C, false, nextU16());
+            CALL_cc_nn(Flag::C, false, nextU16());
             break;
         case 0xDC: //CALL C, nn
-            JR_cc_n(Flag::C, true, nextU16());
+            CALL_cc_nn(Flag::C, true, nextU16());
             break;
 
     //Restarts
