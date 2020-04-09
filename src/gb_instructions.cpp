@@ -915,7 +915,6 @@ void GB::SRL_n(Register r)
 
 void GB::BIT_b_r(uint8_t b, Register r)
 {
-    //TODO should analyse opcodes, unsure about bit widths here
     /*
     Description:
         Test bit b in register r.
@@ -927,7 +926,7 @@ void GB::BIT_b_r(uint8_t b, Register r)
         H - Set.
         C - Not affected.
     */
-    registers.setFlags(Flag::Z, registers.getU8(r) & (1<<b));
+    registers.setFlags(Flag::Z, !(registers.getU8(r) & (1<<b)));
     registers.setFlags(Flag::H);
     registers.resetFlags(Flag::N);
 }
