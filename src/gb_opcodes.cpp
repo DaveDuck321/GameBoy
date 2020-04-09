@@ -110,7 +110,7 @@ void GB::nextOP()
             LD16_SP_HL();
             break;
         case 0xF8: //LDHL SP,n
-            LD16_SP_n(nextU8());
+            LDHL_SP_n(nextU8());
             break;
         case 0x08: //LD (nn),SP
             LD_nn_SP(nextU16());

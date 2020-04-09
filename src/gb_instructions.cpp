@@ -177,7 +177,7 @@ void GB::LD16_SP_HL()
     registers.sp = registers.getU16(Register::HL);
 }
 
-void GB::LD16_SP_n(int8_t n)
+void GB::LDHL_SP_n(int8_t n)
 {
     /*
     Description:
@@ -190,13 +190,7 @@ void GB::LD16_SP_n(int8_t n)
         H - Set or reset according to operation.
         C - Set or reset according to operation.
     */
-    cycle++; // 16-Bit add takes an extra cycle
-    registers.setU16(Register::HL, registers.sp+n);
-    registers.resetFlags(Flag::Z|Flag::N);
-
-    registers.setFlags(Flag::C, n > 0xFFFF-registers.sp);
-    registers.setFlags(Flag::H, (n&0x00FF) > (0x00FF - (registers.sp&0x00FF)));
-    //TODO: debug potential error here, flags for carry look wrong
+    registers.setU16(Register::HL, ADD16_SIGN(registers.sp, n));
 }
 
 void GB::LD_nn_SP(uint16_t nn)
@@ -446,8 +440,30 @@ uint16_t GB::ADD16(uint16_t n1, uint16_t n2)
     cycle++; //16-Bit maths takes an extra cycle
     registers.resetFlags(Flag::N);
     registers.setFlags(Flag::H, (n2&0x0FFF) > (0x0FFF - (n1&0x0FFF)));
-    registers.setFlags(Flag::C, n2 > 0xFFFF - n1);
+    registers.setFlags(Flag::C, n2 > (0xFFFF - n1));
     return n1+n2;
+}
+
+uint16_t GB::ADD16_SIGN(uint16_t nn, int8_t n)
+{
+    /*
+    Description:
+        Add n to nn.
+    Use with:
+        n = one byte signed immediate value (#).
+    Flags affected:
+        Z - Reset.
+        N - Reset.
+        H - Set or reset according to operation.
+        C - Set or reset according to operation.
+    */
+    cycle++; // 16-Bit add takes an extra cycle
+
+    uint8_t usign_n = *reinterpret_cast<uint8_t*>(&n);
+    registers.setFlags(Flag::H, (usign_n&0x0F) > (0x0F - (registers.sp&0x0F)));
+    registers.setFlags(Flag::C, (usign_n&0xFF) > (0xFF - (registers.sp&0xFF)));
+    registers.resetFlags(Flag::N|Flag::Z);
+    return nn+n;
 }
 
 
@@ -464,7 +480,6 @@ void GB::ADD16_HL_n(Register n)
         H - Set if carry from bit 11.
         C - Set if carry from bit 15. 
     */
-    // TODO check H
     uint16_t hl_val = registers.getU16(Register::HL);
     uint16_t n_val = registers.getU16(n);
     registers.setU16(Register::HL, ADD16(hl_val, n_val));
@@ -483,11 +498,8 @@ void GB::ADD16_SP_n(int8_t n)
         H - Set or reset according to operation.
         C - Set or reset according to operation.
     */
-    //TODO set flags right
-    cycle+=2; //Takes 2 additional cycles
-    registers.resetFlags(Flag::N|Flag::Z);
-
-    registers.sp = registers.sp + n;
+    cycle++; //Takes 1 additional cycles
+    registers.sp = ADD16_SIGN(registers.sp, n);
 }
 
 void GB::INC16_nn(Register nn)
