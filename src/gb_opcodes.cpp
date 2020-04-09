@@ -304,6 +304,7 @@ void GB::nextOP()
             uint8_t arg = nextU8();
             switch (arg)
             {
+            //TODO: Possibly need to decrement cycle count here
             //Rotates and Shifts
             case 0x00 ... 0x07: //RLC n
                 RLC_r(registerOpcodes[arg]);

@@ -88,7 +88,8 @@ void GB::LDD_A_HL()
     */
     uint16_t hl = registers.getU16(Register::HL);
     registers.a = readU8(hl);
-    DEC16_nn(Register::HL);
+    //Don't use DEC16 here. Its free
+    registers.setU16(Register::HL, hl-1);
 }
 
 void GB::LDD_HL_A()
@@ -101,7 +102,8 @@ void GB::LDD_HL_A()
     */
     uint16_t hl = registers.getU16(Register::HL);
     writeU8(hl, registers.a);
-    DEC16_nn(Register::HL);
+    //Don't use DEC16 here. Its free
+    registers.setU16(Register::HL, hl-1);
 }
 
 void GB::LDI_A_HL()
@@ -114,7 +116,8 @@ void GB::LDI_A_HL()
     */
     uint16_t hl = registers.getU16(Register::HL);
     registers.a = readU8(hl);
-    INC16_nn(Register::HL);
+    //Don't use INC16 here. Its free
+    registers.setU16(Register::HL, hl+1);
 }
 
 void GB::LDI_HL_A()
@@ -127,7 +130,8 @@ void GB::LDI_HL_A()
     */
     uint16_t hl = registers.getU16(Register::HL);
     writeU8(hl, registers.a);
-    INC16_nn(Register::HL);
+    //Don't use INC16 here. Its free
+    registers.setU16(Register::HL, hl+1);
 }
 
 void GB::LDH_n_A(uint8_t n)
@@ -169,6 +173,7 @@ void GB::LD16_SP_HL()
     Description:
         Put HL into Stack Pointer (SP)
     */
+    cycle++; // 16-Bit load takes an extra cycle
     registers.sp = registers.getU16(Register::HL);
 }
 
@@ -185,6 +190,7 @@ void GB::LD16_SP_n(int8_t n)
         H - Set or reset according to operation.
         C - Set or reset according to operation.
     */
+    cycle++; // 16-Bit add takes an extra cycle
     registers.setU16(Register::HL, registers.sp+n);
     registers.resetFlags(Flag::Z|Flag::N);
 
@@ -214,6 +220,7 @@ void GB::PUSH(Register r)
         nn = AF,BC,DE,HL
     */
     //TODO: check order
+    cycle++; // PUSH takes extra cycle -- 16-Bit read?
     registers.sp -= 2;
     writeU16(registers.sp, registers.getU16(r));
 }
@@ -249,6 +256,7 @@ void GB::ADD_n(uint8_t n)
     */
     registers.setFlags(Flag::C, n > 0xFF - registers.a);
     registers.setFlags(Flag::H, (n&0x0F) > (0x0F - (registers.a&0x0F)));
+
     registers.a = registers.a+n;
     registers.setFlags(Flag::Z, registers.a == 0);
     registers.resetFlags(Flag::N);
@@ -267,7 +275,7 @@ void GB::ADC_n(uint8_t n)
         H - Set if carry from bit 3.
         C - Set if carry from bit 7
     */
-    ADD_n(n + registers.getFlags(Flag::C)); //TODO: fix carry when n
+    ADD_n(n + registers.getFlags(Flag::C));
 }
 
 void GB::SUB_n(uint8_t n)
@@ -435,6 +443,7 @@ uint16_t GB::ADD16(uint16_t n1, uint16_t n2)
         H - Set if carry from bit 11.
         C - Set if carry from bit 15. 
     */
+    cycle++; //16-Bit maths takes an extra cycle
     registers.resetFlags(Flag::N);
     registers.setFlags(Flag::H, (n2&0x0FFF) > (0x0FFF - (n1&0x0FFF)));
     registers.setFlags(Flag::C, n2 > 0xFFFF - n1);
@@ -455,7 +464,7 @@ void GB::ADD16_HL_n(Register n)
         H - Set if carry from bit 11.
         C - Set if carry from bit 15. 
     */
-   // TODO check H
+    // TODO check H
     uint16_t hl_val = registers.getU16(Register::HL);
     uint16_t n_val = registers.getU16(n);
     registers.setU16(Register::HL, ADD16(hl_val, n_val));
@@ -475,6 +484,7 @@ void GB::ADD16_SP_n(int8_t n)
         C - Set or reset according to operation.
     */
     //TODO set flags right
+    cycle+=2; //Takes 2 additional cycles
     registers.resetFlags(Flag::N|Flag::Z);
 
     registers.sp = registers.sp + n;
@@ -490,6 +500,7 @@ void GB::INC16_nn(Register nn)
     Flags affected:
         None
     */
+    cycle++;
     registers.setU16(nn, registers.getU16(nn)+1);
 }
 
@@ -503,7 +514,8 @@ void GB::DEC16_nn(Register nn)
     Flags affected:
         None
     */
-   registers.setU16(nn, registers.getU16(nn)-1);
+    cycle++;
+    registers.setU16(nn, registers.getU16(nn)-1);
 }
 
 void GB::SWAP_n(Register n)
@@ -954,7 +966,8 @@ void GB::JP_nn(uint16_t nn)
     Use with:
         nn = two byte immediate value. (LS byte first.)
     */
-   registers.pc = nn;
+    cycle++; // Jumping takes 1 cycle
+    registers.pc = nn;
 }
 
 void GB::JP_cc_nn(Flag f, bool set, uint16_t nn)
@@ -978,7 +991,8 @@ void GB::JP_HL()
     Description:
         Jump to address contained in HL
     */
-    JP_nn(registers.getU16(Register::HL));
+    // Dont use JP function here since HL jump is free (0 cycles)
+    registers.pc = registers.getU16(Register::HL);
 }
 
 void GB::JR_n(int8_t n)
@@ -1015,9 +1029,9 @@ void GB::CALL_nn(uint16_t nn)
     Use with:
         nn = two byte immediate value. (LS byte first.)
     */
-
     PUSH(Register::PC);
-    JP_nn(nn);
+    // Don't call JP_nn, the jump should take 0 cycles
+    registers.pc = nn;
 }
 
 void GB::CALL_cc_nn(Flag f, bool set, uint16_t nn)
@@ -1045,7 +1059,8 @@ void GB::RST_n(uint8_t n)
         n = $00,$08,$10,$18,$20,$28,$30,$38
     */
     PUSH(Register::PC);
-    JP_nn(n);
+    // Don't call JP_nn, the jump should take 0 cycles
+    registers.pc = n;
 }
 
 void GB::RET()
@@ -1070,6 +1085,7 @@ void GB::RET_cc(Flag f, bool set)
         cc = NC, Return if C flag is reset.
         cc = C,  Return if C flag is set.
     */
+    cycle++; // This takes longer for some reason
     if(registers.getFlags(f) == set) RET();
 }
 
@@ -1079,6 +1095,8 @@ void GB::RETI()
     Description:
         Pop two bytes from stack & jump to that address then enable interrupts
     */
+
+    // Removed IE() since there is no delay in enabling interrupts
+    registers.IME = true;
     RET();
-    EI();
 }

@@ -15,6 +15,8 @@
 class GB
 {
     public:
+    uint64_t cycle = 0;
+
     Cartridge &cartridge;
     Display &display;
     CPURegisters registers;
@@ -29,8 +31,9 @@ class GB
     uint8_t nextU8();
     uint16_t nextU16();
 
-    uint8_t readU8(uint16_t addr) const;
-    uint16_t readU16(uint16_t addr) const;
+    // Reads cannot be const since they consume 1 cycle
+    uint8_t readU8(uint16_t addr);
+    uint16_t readU16(uint16_t addr);
 
     void writeU8(uint16_t addr, uint8_t value);
     void writeU16(uint16_t addr, uint16_t value);

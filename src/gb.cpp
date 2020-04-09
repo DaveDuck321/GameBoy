@@ -16,9 +16,10 @@ GB::~GB()
     
 }
 
-uint8_t GB::readU8(uint16_t addr) const
+uint8_t GB::readU8(uint16_t addr)
 {
     // Reads an 8-Bit value from 'addr'
+    cycle++; // Under normal circumstances a read takes 1 cycle
     uint8_t value = memory.read(addr);
     if(value == 0xF4)
     {
@@ -27,7 +28,7 @@ uint8_t GB::readU8(uint16_t addr) const
     return value;
 }
 
-uint16_t GB::readU16(uint16_t addr) const
+uint16_t GB::readU16(uint16_t addr)
 {
     /*
     Reads a 16-Bit value from 'addr'.
@@ -41,6 +42,7 @@ uint16_t GB::readU16(uint16_t addr) const
 void GB::writeU8(uint16_t addr, uint8_t value)
 {
     // Writes an 8-Bit value to 'addr'
+    cycle++; // Under normal circumstances a write takes 1 cycle
     memory.write(addr, value);
 }
 
@@ -114,7 +116,7 @@ void GB::update()
 int main( int argc, char *argv[] )
 {
     SDL_Display display;
-    Cartridge card = Cartridge::loadRom("tests/cpu_instrs/individual/04-op r,imm.gb");
+    Cartridge card = Cartridge::loadRom("tests/cpu_instrs/individual/11-op a,(hl).gb");
     GB gb(card, display);
     std::cout << std::hex;
 
