@@ -7,7 +7,7 @@ Flag operator | (Flag f1, Flag f2){
     );
 }
 
-CPURegisters::CPURegisters(GB *gb): gb(gb)
+CPURegisters::CPURegisters(GB &gb): gb(gb)
 {
     //Power up sequence (from http://bgb.bircd.org/pandocs.htm)
     setU16(Register::AF, 0x01B0);
@@ -82,11 +82,11 @@ uint8_t CPURegisters::getU8(Register r) const
     case Register::L:
         return l;
     case Register::HL_ptr:
-        return gb->readU8(getU16(Register::HL));
+        return gb.readU8(getU16(Register::HL));
     case Register::BC_ptr:
-        return gb->readU8(getU16(Register::BC));
+        return gb.readU8(getU16(Register::BC));
     case Register::DE_ptr:
-        return gb->readU8(getU16(Register::DE));
+        return gb.readU8(getU16(Register::DE));
     default:
         throw std::runtime_error("Bad register getU8 enum");
     }
@@ -118,13 +118,13 @@ void CPURegisters::setU8(Register r, int8_t value)
         l = value;
         break;
     case Register::HL_ptr:
-        gb->writeU8(getU16(Register::HL), value);
+        gb.writeU8(getU16(Register::HL), value);
         break;
     case Register::BC_ptr:
-        gb->writeU8(getU16(Register::BC), value);
+        gb.writeU8(getU16(Register::BC), value);
         break;
     case Register::DE_ptr:
-        gb->writeU8(getU16(Register::DE), value);
+        gb.writeU8(getU16(Register::DE), value);
         break;
     default:
         throw std::runtime_error("Bad register setU8 enum");

@@ -30,14 +30,14 @@ class GB;
 class CPURegisters
 {
     private:
-    GB *gb; // For resolving pointer registers
+    GB &gb; // For resolving pointer registers
 
     public:
     uint8_t a, b, c, d, e, f, h, l;
     uint16_t sp, pc;
     bool IME, halt;
 
-    CPURegisters(GB *gb);
+    CPURegisters(GB &gb);
 
     void printFlags() const;
     void printRegs() const;
