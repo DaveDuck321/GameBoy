@@ -3,9 +3,9 @@
 
 #include <memory>
 
-#include "display.hpp"
+#include "io_manager.hpp"
 
-class Headless: public Display
+class Headless: public IO_Manager
 {
     private:
     public:

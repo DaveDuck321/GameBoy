@@ -4,9 +4,9 @@
 #include <SDL2/SDL.h>
 #include <memory>
 
-#include "display.hpp"
+#include "io_manager.hpp"
 
-class SDL_Display: public Display
+class SDL_Display: public IO_Manager
 {
     private:
     // SDL stuff is more effort with smart pointers

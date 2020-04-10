@@ -2,6 +2,7 @@
 #define gb_hpp
 
 #include <memory>
+#include "io_manager.hpp"
 #include "memory.hpp"
 #include "registers.hpp"
 #include "cartridge.hpp"
@@ -18,14 +19,13 @@ class GB
     uint64_t cycle = 0;
 
     Cartridge &cartridge;
-    Display &display;
+    IO_Manager &io;
     CPURegisters registers;
-    IO io;
 
     Memory memory;
 
     public:
-    GB(Cartridge &cartridge, Display &display);
+    GB(Cartridge &cartridge, IO_Manager &io);
     ~GB();
 
     uint8_t nextU8();

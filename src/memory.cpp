@@ -2,8 +2,8 @@
 
 #include <iostream>
 
-Memory::Memory(Cartridge &cartridge, IO &io, Display &display):
-    cartridge(cartridge), display(display), io(io)
+Memory::Memory(Cartridge &cartridge, IO_Manager &io):
+    cartridge(cartridge), io(io)
 {
     stack.fill(0xF4); //Debug checker
     workingRam.fill(0xF4);
@@ -52,7 +52,7 @@ uint8_t Memory::read(uint16_t addr) const
         return cartridge.read(addr);
     case 0x8000 ... 0x9FFF:
         // Video Ram
-        return display.read(addr);
+        return io.vramRead(addr);
     case 0xA000 ... 0xBFFF:
         // External ram
         return cartridge.read(addr);
@@ -70,7 +70,7 @@ uint8_t Memory::read(uint16_t addr) const
         throw std::runtime_error("Bad ram address");
     case 0xFF00 ... 0xFF7F:
         //IO ports
-        return io.read(addr);
+        return io.ioRead(addr);
     case 0xFF80 ... 0xFFFE:
         // High ram
         return stack[addr - 0xFF80];
@@ -93,7 +93,7 @@ void Memory::write(uint16_t addr, uint8_t value)
         break;
     case 0x8000 ... 0x9FFF:
         // Video Ram
-        display.write(addr, value);
+        io.vramWrite(addr, value);
         break;
     case 0xA000 ... 0xBFFF:
         // External ram
@@ -117,7 +117,7 @@ void Memory::write(uint16_t addr, uint8_t value)
         break;
     case 0xFF00 ... 0xFF7F:
         //IO ports
-        io.write(addr, value);
+        io.ioWrite(addr, value);
         break;
     case 0xFF80 ... 0xFFFE:
         // High ram

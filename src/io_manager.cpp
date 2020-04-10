@@ -1,15 +1,62 @@
-#include "io.hpp"
+#include "io_manager.hpp"
 
 #include <iostream>
 
-IO::IO()
+IO_Manager::IO_Manager()
 {
     memory.fill(0xF4); //For debuging
 }
 
-void IO::write(uint16_t addr, uint8_t value)
+uint8_t IO_Manager::vramRead(uint16_t addr) const
 {
-    uint8_t offsetAddr = addr-OFFSET_ADDR;
+    switch(addr)
+    {
+        case 0x8000 ... 0x97FF:
+            // Tile data 1
+            // Flatten 3D array and write to it like the gameboy would
+            // (Might cause errors on some compilers -- TODO: check)
+            static_assert(sizeof(patternTables) == 0x1800);
+            return (reinterpret_cast<const uint8_t *>(&patternTables))[addr-0x8000];
+        case 0x9800 ... 0x9BFF:
+            //Background map 1
+            static_assert(sizeof(backgroundMap1) == 0x400);
+            return (reinterpret_cast<const uint8_t *>(&backgroundMap1))[addr-0x9800];
+        case 0x9C00 ... 0x9FFF:
+            //Background map 1
+            static_assert(sizeof(backgroundMap2) == 0x400);
+            return (reinterpret_cast<const uint8_t *>(&backgroundMap2))[addr-0x9C00];
+        default:
+            throw std::range_error("Bad vram address read");
+    }
+}
+
+void IO_Manager::vramWrite(uint16_t addr, uint8_t value)
+{
+    switch(addr)
+    {
+        case 0x8000 ... 0x97FF:
+            // Tile data 1
+            static_assert(sizeof(patternTables) == 0x1800);
+            (reinterpret_cast<uint8_t *>(&patternTables))[addr-0x8000] = value;
+            break;
+        case 0x9800 ... 0x9BFF:
+            //Background map 1
+            static_assert(sizeof(backgroundMap1) == 0x400);
+            (reinterpret_cast<uint8_t *>(&backgroundMap1))[addr-0x9800] = value;
+            break;
+        case 0x9C00 ... 0x9FFF:
+            //Background map 2
+            static_assert(sizeof(backgroundMap2) == 0x400);
+            (reinterpret_cast<uint8_t *>(&backgroundMap2))[addr-0x9C00] = value;
+            break;
+        default:
+            throw std::range_error("Bad vram address write");
+    }
+}
+
+void IO_Manager::ioWrite(uint16_t addr, uint8_t value)
+{
+    uint8_t offsetAddr = addr-0xFF00;
     switch (addr)
     {
     case 0xFF00:
@@ -93,9 +140,9 @@ void IO::write(uint16_t addr, uint8_t value)
     }
 }
 
-uint8_t IO::read(uint16_t addr)
+uint8_t IO_Manager::ioRead(uint16_t addr) const
 {
-    uint8_t offsetAddr = addr-OFFSET_ADDR;
+    uint8_t offsetAddr = addr-0xFF00;
     switch (addr)
     {
     case 0xFF00:
@@ -161,4 +208,24 @@ uint8_t IO::read(uint16_t addr)
         std::cout << std::endl;
         throw std::runtime_error("Bad IO read address");
     }
+}
+
+
+void IO_Manager::draw() const
+{
+    // Allow implementation to initialize
+    clearScreen();
+
+    // Draw background 1
+    for(uint8_t x=0; x<0x20; x++)
+    {
+        for(uint8_t y=0; y<0x20; y++)
+        {
+            uint8_t tileIndex = backgroundMap1[y][x];
+            drawTile(patternTables[tileIndex], x*8, y*8);
+        }
+    }
+
+    // For if implementation needs to finish rendering
+    finishRender();
 }

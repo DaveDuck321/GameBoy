@@ -2,11 +2,11 @@
 #include "displays/sdl_display.hpp"
 #include <iostream>
 
-GB::GB(Cartridge &cartridge, Display &display):
+GB::GB(Cartridge &cartridge, IO_Manager &io):
     cartridge(cartridge),
-    display(display),
+    io(io),
     registers(*this),
-    memory(cartridge, io, display)
+    memory(cartridge, io)
 {
 
 }
@@ -119,7 +119,7 @@ int main( int argc, char *argv[] )
         gb.update();
         if(i%10000 == 0)
         {
-            gb.display.draw();
+            gb.io.draw();
         }
     }
     return EXIT_SUCCESS;
