@@ -9,8 +9,6 @@ class Headless: public Display
 {
     private:
     public:
-    Headless();
-    ~Headless();
 
     void clearScreen() const override {};
 
