@@ -93,7 +93,7 @@ class GB
         void LD16_SP_HL();
 
         //LDHL SP,n
-        void LD16_SP_n(int8_t n);
+        void LDHL_SP_n(int8_t n);
 
         //LD nn,SP
         void LD_nn_SP(uint16_t nn);
@@ -138,6 +138,7 @@ class GB
     //16-Bit ALU
         //Helper function for 16-Bit addition
         uint16_t ADD16(uint16_t n1, uint16_t n2);
+        uint16_t ADD16_SIGN(uint16_t nn, int8_t n);
 
         //ADD HL,n
         void ADD16_HL_n(Register n);

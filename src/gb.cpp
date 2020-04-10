@@ -5,7 +5,7 @@
 GB::GB(Cartridge &cartridge, Display &display):
     cartridge(cartridge),
     display(display),
-    registers(this),
+    registers(*this),
     memory(cartridge, io, display)
 {
 
@@ -13,19 +13,14 @@ GB::GB(Cartridge &cartridge, Display &display):
 
 GB::~GB()
 {
-    
+
 }
 
 uint8_t GB::readU8(uint16_t addr)
 {
     // Reads an 8-Bit value from 'addr'
     cycle++; // Under normal circumstances a read takes 1 cycle
-    uint8_t value = memory.read(addr);
-    if(value == 0xF4)
-    {
-        std::cout<<"Potential uninitialised memory"<<std::endl;
-    }
-    return value;
+    return memory.read(addr);
 }
 
 uint16_t GB::readU16(uint16_t addr)
@@ -116,7 +111,7 @@ void GB::update()
 int main( int argc, char *argv[] )
 {
     SDL_Display display;
-    Cartridge card = Cartridge::loadRom("tests/cpu_instrs/individual/11-op a,(hl).gb");
+    Cartridge card = Cartridge::loadRom("tests/cpu_instrs/individual/03-op sp,hl.gb");
     GB gb(card, display);
     std::cout << std::hex;
 
@@ -127,6 +122,5 @@ int main( int argc, char *argv[] )
             gb.display.draw();
         }
     }
-    std::cin.ignore();
     return EXIT_SUCCESS;
 }
