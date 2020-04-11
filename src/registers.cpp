@@ -16,8 +16,8 @@ CPURegisters::CPURegisters(GB &gb): gb(gb)
     setU16(Register::HL, 0x014D);
     sp = 0xFFFE;
     pc = 0x0100;    //Start at 0x100
-    IME = true;     //Start with interrupts enabled
     halt = false;   //Runs normally to begin with
+    IME.fill(true); //Start with interrupts enabled
 }
 
 void CPURegisters::printRegs() const

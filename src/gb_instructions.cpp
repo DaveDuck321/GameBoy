@@ -647,7 +647,7 @@ void GB::DI()
     Flags affected:
         None.
     */
-    registers.IME = false; //TODO: Timing is wrong here
+    registers.IME[2] = false;
 }
 
 void GB::EI()
@@ -659,7 +659,7 @@ void GB::EI()
     Flags affected:
         None.
     */
-    registers.IME = true; //TODO: Timing is wrong here
+    registers.IME[2] = true;
 }
 
 uint8_t GB::ROT_LC(uint8_t value)
@@ -1108,6 +1108,6 @@ void GB::RETI()
     */
 
     // Removed IE() since there is no delay in enabling interrupts
-    registers.IME = true;
+    registers.IME.fill(true);
     RET();
 }

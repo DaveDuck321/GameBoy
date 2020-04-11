@@ -80,18 +80,21 @@ void GB::handleInterrupts()
         4       P10-P13 -> Low      0x60
     */
     //Dont do anything if interrupts are globally disabled
-    if(!registers.IME) return;
+    if(!registers.IME[0]) return;
 
     uint8_t triggered = memory.read(0xFFFF) & memory.read(0xFF0F) & 0x1F;
     if(triggered)
     {
         registers.halt = false;
-        registers.IME = false;
-        if(triggered & 0x01)       CALL_nn(0x40);
-        else if(triggered & 0x02)  CALL_nn(0x48);
-        else if(triggered & 0x04)  CALL_nn(0x50);
-        else if(triggered & 0x08)  CALL_nn(0x58);
-        else if(triggered & 0x10)  CALL_nn(0x60);
+        registers.IME.fill(false);
+        for(uint8_t bit=0; bit!=5; bit++)
+        {
+            if((triggered&(1<<bit)))
+            {
+                triggered ^= 1<<bit;
+                CALL_nn(0x40 + 0x08*bit);
+            }
+        }
     }
 }
 
@@ -101,13 +104,17 @@ void GB::update()
     handleInterrupts();
 
     // Do nothing if waiting for interrupt
-    if(registers.halt && registers.IME) return;
+    if(registers.halt && registers.IME[0]) return;
 
     // Run the next operation from the program counter
     nextOP();
+    registers.IME[0] = registers.IME[1];
+    registers.IME[1] = registers.IME[2];
 
+    // Update timers for accurate delays
+    io.updateTimers(cycle);
     // LCD update for drawing and interrupts
-    io.updateLCD(cycle);
+    io.updateLCD();
 }
 
 

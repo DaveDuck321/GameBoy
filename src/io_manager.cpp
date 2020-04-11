@@ -221,6 +221,54 @@ uint8_t IO_Manager::ioRead(uint16_t addr) const
     }
 }
 
+void IO_Manager::incrementTimer()
+{
+    /*
+    Increments and resets the current timer
+    If timer overflows, an interrupt is triggered
+    */
+    tCycleCount = 0;
+    // Inc counter and detect overflow
+    if(++memory[T_COUNTER] == 0)
+    {
+        memory[T_COUNTER] = memory[T_MODULO];
+        memory[INTERRUPTS] |= TIMER_INTERRUPT;
+    }
+}
+
+void IO_Manager::updateTimers(uint64_t cycle)
+{
+    uint64_t dt = cycle-lastCycle;
+    lastCycle = cycle;
+
+    //Inc timer by real cycle time
+    vCycleCount += dt;
+    tCycleCount += dt;
+    //Timer increments every 64 cycles
+    memory[DIV_TIMER] = (cycle / 64) % 0x100;
+    switch(memory[T_CONTROL]&0x07)
+    {
+        case 0x04:
+            //4096 Hz
+            if(tCycleCount >= 1024) incrementTimer();
+            break;
+        case 0x05:
+            //262144 Hz
+            if(tCycleCount >= 16) incrementTimer();
+            break;
+        case 0x06:
+            //65536 Hz
+            if(tCycleCount >= 64) incrementTimer();
+            break;
+        case 0x07:
+            // 16384 Hz
+            if(tCycleCount >= 256) incrementTimer();
+            break;
+        default:
+            //Timer is disabled
+            break;
+    }
+}
 
 bool IO_Manager::spriteOverridesPixel(int screenX, int screenY, uint8_t &color) const
 {
@@ -331,17 +379,14 @@ void IO_Manager::drawLine() const
     }
 }
 
-void IO_Manager::updateLCD(uint64_t cycle)
+void IO_Manager::updateLCD()
 {
-    // Each complete screen 
-    cycleCounter = cycle - startCycle;
-
     // Timings from http://bgb.bircd.org/pandocs.htm#videodisplay
-    switch(cycleCounter)
+    switch(vCycleCount)
     {
         case 0 ... 65663:
             // Drawing to screen
-            switch (cycleCounter%456)
+            switch (vCycleCount%456)
             {
             case 0 ... 77:
                 // Mode 2: (don't need to emulate OAM)
@@ -395,9 +440,8 @@ void IO_Manager::updateLCD(uint64_t cycle)
             break;
         default:
             // VBlank finished... flush screen
+            vCycleCount = 0;
             memory[LCD_LY] = 255;
-            cycleCounter = 0;
-            startCycle = cycle;
             finishRender();
             break;
     }

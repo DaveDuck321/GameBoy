@@ -36,16 +36,24 @@ const uint_fast16_t BG_Palette = 0xFF47 - IO_OFFSET;
 const uint_fast16_t O0_Palette = 0xFF48 - IO_OFFSET;
 const uint_fast16_t O1_Palette = 0xFF49 - IO_OFFSET;
 
+//Timers
+const uint_fast16_t DIV_TIMER = 0xFF04  - IO_OFFSET;
+const uint_fast16_t T_COUNTER = 0xFF05  - IO_OFFSET;
+const uint_fast16_t T_MODULO  = 0xFF06  - IO_OFFSET;
+const uint_fast16_t T_CONTROL = 0xFF07  - IO_OFFSET;
+
 //Interrupts
 const uint8_t VSYNC_INTERRUPT = 0x01;
 const uint8_t STAT_INTERRUPT = 0x02;
+const uint8_t TIMER_INTERRUPT = 0x04;
 
 class IO_Manager
 {
     private:
     // Cycle counter (for drawing)
-    uint64_t startCycle = 0;
-    uint64_t cycleCounter = 0;
+    uint64_t lastCycle = 0;
+    uint64_t vCycleCount = 0;
+    uint64_t tCycleCount = 0;
     // IO memory (not including video RAM)
     std::array<uint8_t, 0x4C> memory;
 
@@ -73,8 +81,11 @@ class IO_Manager
         uint8_t ioRead(uint16_t addr) const;
         void ioWrite(uint16_t addr, uint8_t value);
 
+        void incrementTimer();
+        void updateTimers(uint64_t cycle); 
+
     // Display stuff
-        void updateLCD(uint64_t cycle);
+        void updateLCD();
         bool spriteOverridesPixel(int screenX, int screenY,  uint8_t &color) const;
         void backgroundPixel(int screenX, int screenY,  uint8_t &color) const;
 

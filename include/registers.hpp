@@ -1,8 +1,7 @@
 #ifndef registers_hpp
 #define registers_hpp
 
-#include <type_traits>
-#include <vector>
+#include <array>
 #include <iostream>
 
 enum class Register
@@ -35,7 +34,10 @@ class CPURegisters
     public:
     uint8_t a, b, c, d, e, f, h, l;
     uint16_t sp, pc;
-    bool IME, halt;
+    bool halt;
+    // Need 3 queued IME values for any switching combo
+    std::array<bool, 3> IME;
+
 
     CPURegisters(GB &gb);
 
