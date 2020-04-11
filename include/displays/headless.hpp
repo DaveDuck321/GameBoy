@@ -10,9 +10,7 @@ class Headless: public IO_Manager
     private:
     public:
 
-    void clearScreen() const override {};
-
-    void drawTile(Tile tile, int screenX, int screenY) const {};
+    virtual void drawPixel(int color, int screenX, int screenY) const = 0;
 };
 
 #endif

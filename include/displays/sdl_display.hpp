@@ -17,10 +17,9 @@ class SDL_Display: public IO_Manager
     SDL_Display();
     ~SDL_Display();
 
-    void clearScreen() const override;
     void finishRender() const override;
 
-    void drawTile(Tile tile, int screenX, int screenY) const;
+    virtual void drawPixel(int color, int screenX, int screenY) const;
 };
 
 #endif

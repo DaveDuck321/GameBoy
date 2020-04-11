@@ -82,7 +82,7 @@ void GB::handleInterrupts()
     //Dont do anything if interrupts are globally disabled
     if(!registers.IME) return;
 
-    uint8_t triggered = readU8(0xFFFF) & readU8(0xFF0F) & 0x1F;
+    uint8_t triggered = memory.read(0xFFFF) & memory.read(0xFF0F) & 0x1F;
     if(triggered)
     {
         registers.halt = false;
@@ -97,30 +97,29 @@ void GB::handleInterrupts()
 
 void GB::update()
 {
-    //Check for interrupts (if enabled)
+    // Check for interrupts (if enabled)
     handleInterrupts();
 
-    //Do nothing if waiting for interrupt
+    // Do nothing if waiting for interrupt
     if(registers.halt && registers.IME) return;
 
     // Run the next operation from the program counter
     nextOP();
+
+    // LCD update for drawing and interrupts
+    io.updateLCD(cycle);
 }
 
 
 int main( int argc, char *argv[] )
 {
     SDL_Display display;
-    Cartridge card = Cartridge::loadRom("tests/cpu_instrs/individual/03-op sp,hl.gb");
+    Cartridge card = Cartridge::loadRom("tests/cpu_instrs/individual/02-interrupts.gb");
     GB gb(card, display);
     std::cout << std::hex;
 
     for(int i = 0; ; i++) {
         gb.update();
-        if(i%10000 == 0)
-        {
-            gb.io.draw();
-        }
     }
     return EXIT_SUCCESS;
 }

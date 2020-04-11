@@ -52,7 +52,7 @@ uint8_t Memory::read(uint16_t addr) const
         return cartridge.read(addr);
     case 0x8000 ... 0x9FFF:
         // Video Ram
-        return io.vramRead(addr);
+        return io.videoRead(addr);
     case 0xA000 ... 0xBFFF:
         // External ram
         return cartridge.read(addr);
@@ -64,7 +64,7 @@ uint8_t Memory::read(uint16_t addr) const
         return workingRam[addr-0xE000];
     case 0xFE00 ... 0xFE9F:
         // Sprite Attribute Table
-        throw std::runtime_error("Sprites not implemented");
+        return io.videoRead(addr);
     case 0xFEA0 ... 0xFEFF:
         // Not Usable
         throw std::runtime_error("Bad ram address");
@@ -93,7 +93,7 @@ void Memory::write(uint16_t addr, uint8_t value)
         break;
     case 0x8000 ... 0x9FFF:
         // Video Ram
-        io.vramWrite(addr, value);
+        io.videoWrite(addr, value);
         break;
     case 0xA000 ... 0xBFFF:
         // External ram
@@ -109,7 +109,7 @@ void Memory::write(uint16_t addr, uint8_t value)
         break;
     case 0xFE00 ... 0xFE9F:
         // Sprite Attribute Table
-        throw std::runtime_error("Sprites not implemented");
+        io.videoWrite(addr, value);
         break;
     case 0xFEA0 ... 0xFEFF:
         // Not Usable
