@@ -80,48 +80,56 @@ void GB::handleInterrupts()
         4       P10-P13 -> Low      0x60
     */
     //Dont do anything if interrupts are globally disabled
-    if(!registers.IME[0]) return;
+    if(!registers.IME[0] && !registers.halt) return;
 
     uint8_t triggered = memory.read(0xFFFF) & memory.read(0xFF0F) & 0x1F;
     if(triggered)
     {
-        registers.halt = false;
         registers.IME.fill(false);
         for(uint8_t bit=0; bit!=5; bit++)
         {
             if((triggered&(1<<bit)))
             {
-                triggered ^= 1<<bit;
-                CALL_nn(0x40 + 0x08*bit);
+                if(registers.IME[0] || !registers.halt)
+                {
+                    memory.write(0xFF0F, memory.read(0xFF0F)^(1<<bit));
+                    CALL_nn(0x40 + 0x08*bit);
+                }
+                break;
             }
         }
+        registers.halt = false;
     }
 }
 
 void GB::update()
 {
+    // Update timers for accurate delays
+    io.updateTimers(cycle);
+    // LCD update for drawing and interrupts
+    io.updateLCD();
+
     // Check for interrupts (if enabled)
     handleInterrupts();
 
     // Do nothing if waiting for interrupt
-    if(registers.halt && registers.IME[0]) return;
+    if(registers.halt)
+    {
+        cycle++;
+        return;
+    }
 
     // Run the next operation from the program counter
     nextOP();
     registers.IME[0] = registers.IME[1];
     registers.IME[1] = registers.IME[2];
-
-    // Update timers for accurate delays
-    io.updateTimers(cycle);
-    // LCD update for drawing and interrupts
-    io.updateLCD();
 }
 
 
 int main( int argc, char *argv[] )
 {
     SDL_Display display;
-    Cartridge card = Cartridge::loadRom("tests/cpu_instrs/individual/02-interrupts.gb");
+    Cartridge card = Cartridge::loadRom("tests/cpu_instrs/individual/01-special.gb");
     GB gb(card, display);
     std::cout << std::hex;
 

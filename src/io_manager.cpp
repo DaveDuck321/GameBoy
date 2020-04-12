@@ -250,19 +250,19 @@ void IO_Manager::updateTimers(uint64_t cycle)
     {
         case 0x04:
             //4096 Hz
-            if(tCycleCount >= 1024) incrementTimer();
+            if(tCycleCount >= 256) incrementTimer();
             break;
         case 0x05:
             //262144 Hz
-            if(tCycleCount >= 16) incrementTimer();
+            if(tCycleCount >= 4) incrementTimer();
             break;
         case 0x06:
             //65536 Hz
-            if(tCycleCount >= 64) incrementTimer();
+            if(tCycleCount >= 16) incrementTimer();
             break;
         case 0x07:
             // 16384 Hz
-            if(tCycleCount >= 256) incrementTimer();
+            if(tCycleCount >= 64) incrementTimer();
             break;
         default:
             //Timer is disabled
