@@ -23,14 +23,14 @@ CPURegisters::CPURegisters(GB &gb): gb(gb)
 void CPURegisters::printRegs() const
 {
     std::cout << "registers:";
-    std::cout << (int)a;
-    std::cout << (int)b;
-    std::cout << (int)c;
-    std::cout << (int)d;
-    std::cout << (int)e;
-    std::cout << (int)getU16(Register::HL);
-    std::cout << (int)getU16(Register::SP);
-    std::cout << (int)getU16(Register::PC);
+    std::cout << "#" <<(int)a;
+    std::cout << "#" <<(int)b;
+    std::cout << "#" <<(int)c;
+    std::cout << "#" <<(int)d;
+    std::cout << "#" <<(int)e;
+    std::cout << "#" <<(int)getU16(Register::HL);
+    std::cout << "#" <<(int)getU16(Register::SP);
+    std::cout << "#" <<(int)getU16(Register::PC);
     std::cout <<std::endl;
 }
 
@@ -136,7 +136,7 @@ uint16_t CPURegisters::getU16(Register r) const
     switch (r)
     {
     case Register::AF:
-        return (a<<8)+f;
+        return (a<<8)+(f&0xF0);
     case Register::BC:
         return (b<<8)+c;
     case Register::DE:
@@ -158,7 +158,7 @@ void CPURegisters::setU16(Register r, int16_t value)
     {
     case Register::AF:
         a = value>>8;
-        f = value&0xFF;
+        f = value&0xF0; // Maybe not?
         break;
     case Register::BC:
         b = value>>8;
