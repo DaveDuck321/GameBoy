@@ -560,7 +560,27 @@ void GB::DAA()
         H - Reset.
         C - Set or reset according to operation.
     */
-    throw std::runtime_error("DAA Not implemented");
+    // Adjust differently depending on previous operation
+    if(!registers.getFlags(Flag::N))
+    {
+        // When operation was addition, adjust within range
+        bool upperAdjust = (registers.a>0x99) || registers.getFlags(Flag::C);
+        bool lowerAdjust = ((registers.a&0x0F)>0x09) || registers.getFlags(Flag::H);
+
+        registers.setFlags(Flag::C, upperAdjust);
+        registers.a += (0x60*upperAdjust) | (0x06*lowerAdjust);
+    }
+    else
+    {
+        // When operation was subtraction, only act on flags
+        bool upperAdjust = registers.getFlags(Flag::C);
+        bool lowerAdjust = registers.getFlags(Flag::H);
+
+        registers.setFlags(Flag::C, upperAdjust);
+        registers.a -= (0x60*upperAdjust)|(0x06*lowerAdjust);
+    }
+    registers.setFlags(Flag::Z, registers.a==0);
+    registers.resetFlags(Flag::H);
 }
 
 void GB::CPL()
