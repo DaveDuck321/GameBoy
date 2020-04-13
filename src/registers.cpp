@@ -24,6 +24,7 @@ void CPURegisters::printRegs() const
 {
     std::cout << "registers:";
     std::cout << "#" <<(int)a;
+    std::cout << "#" <<(int)f;
     std::cout << "#" <<(int)b;
     std::cout << "#" <<(int)c;
     std::cout << "#" <<(int)d;
@@ -55,12 +56,12 @@ void CPURegisters::setFlags(Flag flag, bool set)
 
 void CPURegisters::setFlags(Flag flag)
 {
-    f = f | static_cast<uint8_t>(flag);
+    f |= static_cast<uint8_t>(flag);
 }
 
 void CPURegisters::resetFlags(Flag flag)
 {
-    f = f & ~static_cast<uint8_t>(flag);
+    f &= ~static_cast<uint8_t>(flag);
 }
 
 uint8_t CPURegisters::getU8(Register r) const

@@ -66,7 +66,7 @@ void GB::LD_A_C()
     Same as:
         LD A,($FF00+C)
     */
-    registers.a = readU8(0xFF00 + registers.c);
+    registers.a = readU8(0xFF00|registers.c);
 }
 
 void GB::LD_C_A()
@@ -75,7 +75,7 @@ void GB::LD_C_A()
     Description:
         Put A into address $FF00 + register C.
     */
-    writeU8(0xFF00 + registers.c, registers.a);
+    writeU8(0xFF00|registers.c, registers.a);
 }
 
 void GB::LDD_A_HL()
@@ -142,7 +142,7 @@ void GB::LDH_n_A(uint8_t n)
     Use with:
         n = one byte immediate value
     */
-    writeU8(0xFF00+n, registers.a);
+    writeU8(0xFF00|n, registers.a);
 }
 
 void GB::LDH_A_n(uint8_t n)
@@ -153,7 +153,7 @@ void GB::LDH_A_n(uint8_t n)
     Use with:
         n = one byte immediate value
     */
-    registers.a = readU8(0xFF00+n);
+    registers.a = readU8(0xFF00|n);
 }
 
 void GB::LD16_n_nn(Register n, uint16_t nn)
