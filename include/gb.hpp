@@ -106,13 +106,13 @@ class GB
 
     //8-Bit ALU
         //ADD n
-        void ADD_n(uint8_t n);
+        void ADD_n(uint8_t n, bool carry);
 
         //ADC n
         void ADC_n(uint8_t n);
 
         //SUB n
-        void SUB_n(uint8_t n);
+        void SUB_n(uint8_t n, bool carry);
 
         //SBC n
         void SBC_n(uint8_t n);
@@ -191,29 +191,21 @@ class GB
         uint8_t ROT_RC(uint8_t value);
         uint8_t ROT_R(uint8_t value);
 
-        //RLCA
-        void RLCA();
-
-        //RLA
-        void RLA();
-
-        //RLCA
-        void RRCA();
-
-        //RRA
-        void RRA();
-
         //RLC n
-        void RLC_r(Register r);
+        void RLCA(); //RLCA
+        void RLC_r(Register r); //RLC r
 
         //RL n
-        void RL_r(Register r);
+        void RLA(); //RLA
+        void RL_r(Register r); //RL r
 
         //RRC n
-        void RRC_r(Register r);
+        void RRCA(); //RRCA
+        void RRC_r(Register r); //RRC r
 
         //RR n
-        void RR_r(Register r);
+        void RRA(); //RRA
+        void RR_r(Register r); //RR r
 
         //SLA n
         void SLA_n(Register r);

@@ -144,10 +144,10 @@ void GB::nextOP()
     //8-Bit ALU
         //ADD
         case 0x80 ... 0x87: //ADD A, n
-            ADD_n(registers.getU8(registerOpcodes[opcode-0x80]));
+            ADD_n(registers.getU8(registerOpcodes[opcode-0x80]), false);
             break;
         case 0xC6: // Add A, #
-            ADD_n(nextU8());
+            ADD_n(nextU8(), false);
             break;
         //ADC
         case 0x88 ... 0x8F: //ADC A, n
@@ -158,18 +158,21 @@ void GB::nextOP()
             break;
         //SUB
         case 0x90 ... 0x97: //SUB n
-            SUB_n(registers.getU8(registerOpcodes[opcode-0x90]));
+            SUB_n(registers.getU8(registerOpcodes[opcode-0x90]), false);
             break;
         case 0xD6: //SUB #
-            SUB_n(nextU8());
+            SUB_n(nextU8(), false);
             break;
         //SBC
         case 0x98 ... 0x9F: //SBC A,n
             SBC_n(registers.getU8(registerOpcodes[opcode-0x98]));
             break;
+        case 0xDE: //SBC A, #
+            SBC_n(nextU8());
+            break;
         //AND
         case 0xA0 ... 0xA7: //AND n
-            ADD_n(registers.getU8(registerOpcodes[opcode-0xA0]));
+            AND_n(registers.getU8(registerOpcodes[opcode-0xA0]));
             break;
         case 0xE6: //AND #
             AND_n(nextU8());

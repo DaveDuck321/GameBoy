@@ -231,10 +231,9 @@ void GB::POP(Register r)
     //TODO: check order
     registers.setU16(r, readU16(registers.sp));
     registers.sp += 2;
-
 }
 
-void GB::ADD_n(uint8_t n)
+void GB::ADD_n(uint8_t n, bool carry)
 {
     //TODO: guessed C flag operation, might be wrong
     /*
@@ -248,10 +247,10 @@ void GB::ADD_n(uint8_t n)
         H - Set if carry from bit 3.
         C - Set if carry from bit 7
     */
-    registers.setFlags(Flag::C, n > 0xFF - registers.a);
-    registers.setFlags(Flag::H, (n&0x0F) > (0x0F - (registers.a&0x0F)));
+    registers.setFlags(Flag::C, (n + carry) > 0xFF - registers.a);
+    registers.setFlags(Flag::H, ((n&0x0F) + carry) > (0x0F - (registers.a&0x0F)));
 
-    registers.a = registers.a+n;
+    registers.a = registers.a+n+carry;
     registers.setFlags(Flag::Z, registers.a == 0);
     registers.resetFlags(Flag::N);
 }
@@ -269,10 +268,10 @@ void GB::ADC_n(uint8_t n)
         H - Set if carry from bit 3.
         C - Set if carry from bit 7
     */
-    ADD_n(n + registers.getFlags(Flag::C));
+    ADD_n(n, registers.getFlags(Flag::C));
 }
 
-void GB::SUB_n(uint8_t n)
+void GB::SUB_n(uint8_t n, bool carry)
 {
     //TODO: guessed C flag operation, might be wrong
     /*
@@ -286,10 +285,10 @@ void GB::SUB_n(uint8_t n)
         H - Set if no borrow from bit 4.
         C - Set if no borrow.
     */
-    registers.setFlags(Flag::C, registers.a - n < 0);
-    registers.setFlags(Flag::H, (registers.a&0x0F) - (n&0x0F) < 0);
+    registers.setFlags(Flag::C, registers.a - n -carry < 0);
+    registers.setFlags(Flag::H, (registers.a&0x0F) - (n&0x0F) - carry < 0);
 
-    registers.a = registers.a-n;
+    registers.a = registers.a-n-carry;
     registers.setFlags(Flag::Z, registers.a == 0);
     registers.setFlags(Flag::N);
 }
@@ -307,7 +306,7 @@ void GB::SBC_n(uint8_t n)
         H - Set if no borrow from bit 4.
         C - Set if no borrow
     */
-    SUB_n(n + registers.getFlags(Flag::C));
+    SUB_n(n, registers.getFlags(Flag::C));
 }
 
 void GB::AND_n(uint8_t n)
@@ -546,7 +545,7 @@ void GB::SWAP_n(Register n)
     uint8_t value = registers.getU8(n);
     registers.setFlags(Flag::Z, value==0);
     registers.resetFlags(Flag::N|Flag::H|Flag::C);
-    registers.setU8(n, ((value&0x0F)<<8) + ((value&0xF0)>>8));
+    registers.setU8(n, ((value&0x0F)<<4)|((value&0xF0)>>4));
 }
 
 void GB::DAA()
@@ -668,17 +667,15 @@ uint8_t GB::ROT_LC(uint8_t value)
     Description:
         Rotate value left. Old bit 7 to Carry flag.
     Flags affected:
-        Z - Set if result is zero.
+        Z - Unchanged
         N - Reset.
         H - Reset.
         C - Contains old bit 7 data.
     */
-    uint8_t result = (value << 1) + ((value&0x80) >> 7);
+    uint8_t result = (value<<1)|(value>>7);
 
-    registers.resetFlags(Flag::N|Flag::H);
     registers.setFlags(Flag::C, value&0x80);
-    //registers.setFlags(Flag::Z, result==0);
-    registers.resetFlags(Flag::Z);
+    registers.resetFlags(Flag::N|Flag::H);
 
     return result;
 }
@@ -687,21 +684,21 @@ uint8_t GB::ROT_L(uint8_t value)
 {
     /*
     Description:
-        Rotate value left through Carry flag
+        Rotate value left through Carry flag.
     Flags affected:
-        Z - Set if result is zero.
+        Z - Unchanged
         N - Reset.
         H - Reset.
         C - Contains old bit 7 data.
     */
-    bool carryFlag = registers.getFlags(Flag::C);
-    uint8_t result = (value << 1) + carryFlag;
+    uint8_t result = (value<<1)|registers.getFlags(Flag::C);
 
-    registers.resetFlags(Flag::N|Flag::H);
     registers.setFlags(Flag::C, value&0x80);
-    registers.setFlags(Flag::Z, result==0);
+    registers.resetFlags(Flag::N|Flag::H);
+
     return result;
 }
+
 
 uint8_t GB::ROT_RC(uint8_t value)
 {
@@ -709,17 +706,15 @@ uint8_t GB::ROT_RC(uint8_t value)
     Description:
         Rotate value right. Old bit 0 to Carry flag.
     Flags affected:
-        Z - Set if result is zero.
+        Z - Unchanged
         N - Reset.
         H - Reset.
         C - Contains old bit 0 data
     */
-    uint8_t result = (value >> 1) + ((value&1) << 7);
+    uint8_t result = ((value&1)<<7)|(value>>1);
 
-    registers.resetFlags(Flag::N|Flag::H);
     registers.setFlags(Flag::C, value&1);
-    //registers.setFlags(Flag::Z, result==0);
-    registers.resetFlags(Flag::Z);
+    registers.resetFlags(Flag::N|Flag::H);
 
     return result;
 }
@@ -730,17 +725,16 @@ uint8_t GB::ROT_R(uint8_t value)
     Description:
         Rotate value right through Carry flag.
     Flags affected:
-        Z - Set if result is zero.
+        Z - Unchanged.
         N - Reset.
         H - Reset.
         C - Contains old bit 0 data
     */
-    bool carryFlag = registers.getFlags(Flag::C);
-    uint8_t result = (value >> 1) + (carryFlag << 7);
+    uint8_t result = (registers.getFlags(Flag::C)<<7)|(value>>1);
 
-    registers.resetFlags(Flag::N|Flag::H);
     registers.setFlags(Flag::C, value&1);
-    registers.setFlags(Flag::Z, result==0);
+    registers.resetFlags(Flag::N|Flag::H);
+
     return result;
 }
 
@@ -750,11 +744,12 @@ void GB::RLCA()
     Description:
         Rotate A left. Old bit 7 to Carry flag.
     Flags affected:
-        Z - Set if result is zero.
+        Z - Reset.
         N - Reset.
         H - Reset.
         C - Contains old bit 7 data.
     */
+    registers.resetFlags(Flag::Z);
     registers.a = ROT_LC(registers.a);
 }
 
@@ -764,11 +759,12 @@ void GB::RLA()
     Description:
         Rotate A left through Carry flag.
     Flags affected:
-        Z - Set if result is zero.
+        Z - Reset.
         N - Reset.
         H - Reset.
         C - Contains old bit 7 data
     */
+    registers.resetFlags(Flag::Z);
     registers.a = ROT_L(registers.a);
 }
 
@@ -778,11 +774,12 @@ void GB::RRCA()
     Description:
         Rotate A right. Old bit 0 to Carry flag.
     Flags affected:
-        Z - Set if result is zero.
+        Z - Reset.
         N - Reset.
         H - Reset.
         C - Contains old bit 0 data
     */
+    registers.resetFlags(Flag::Z);
     registers.a = ROT_RC(registers.a);
 }
 
@@ -792,13 +789,15 @@ void GB::RRA()
     Description:
         Rotate A right through Carry flag.
     Flags affected:
-        Z - Set if result is zero.
+        Z - Reset.
         N - Reset.
         H - Reset.
         C - Contains old bit 0 data
     */
+    registers.resetFlags(Flag::Z);
     registers.a = ROT_R(registers.a);
 }
+
 
 void GB::RLC_r(Register r)
 {
@@ -813,7 +812,9 @@ void GB::RLC_r(Register r)
         H - Reset.
         C - Contains old bit 7 data.
     */
-    registers.setU8(r, ROT_LC(registers.getU8(r)));
+    uint8_t result = ROT_LC(registers.getU8(r));
+    registers.setFlags(Flag::Z, result==0);
+    registers.setU8(r, result);
 }
 
 void GB::RL_r(Register r)
@@ -829,7 +830,9 @@ void GB::RL_r(Register r)
         H - Reset.
         C - Contains old bit 7 data.
     */
-    registers.setU8(r, ROT_L(registers.getU8(r)));
+    uint8_t result = ROT_L(registers.getU8(r));
+    registers.setFlags(Flag::Z, result==0);
+    registers.setU8(r, result);
 }
 
 void GB::RRC_r(Register r)
@@ -841,10 +844,17 @@ void GB::RRC_r(Register r)
         n = A,B,C,D,E,H,L, (HL)
     Flags affected:
         Z - Set if result is zero.
-        N - Reset.  H - Reset.
+        N - Reset.
+        H - Reset.
         C - Contains old bit 0 data.
     */
-   registers.setU8(r, ROT_RC(registers.getU8(r)));
+    //std::cout << "Input: "<<(int)registers.getU8(r) << ", CARRY: " << registers.getFlags(Flag::C) << std::endl;
+
+    uint8_t result = ROT_RC(registers.getU8(r));
+    registers.setFlags(Flag::Z, result==0);
+
+    //std::cout << "OUTPUT: "<<(int)result << ", CARRY: " << registers.getFlags(Flag::C) << std::endl;
+    registers.setU8(r, result);
 }
 
 void GB::RR_r(Register r)
@@ -860,7 +870,9 @@ void GB::RR_r(Register r)
         H - Reset.
         C - Contains old bit 0 data.
     */
-    registers.setU8(r, ROT_R(registers.getU8(r)));
+    uint8_t result = ROT_R(registers.getU8(r));
+    registers.setFlags(Flag::Z, result==0);
+    registers.setU8(r, result);
 }
 
 void GB::SLA_n(Register r)
@@ -878,7 +890,7 @@ void GB::SLA_n(Register r)
     */
     int8_t value = registers.getU8(r);
     registers.setU8(r, value<<1);
-    registers.setFlags(Flag::N|Flag::H);
+    registers.resetFlags(Flag::N|Flag::H);
     registers.setFlags(Flag::Z, (value&0x7f) == 0);
     registers.setFlags(Flag::C, value&0x80);
 }
@@ -898,7 +910,7 @@ void GB::SRA_n(Register r)
     */
     int8_t value = registers.getU8(r);
     int8_t result = (value>>1) | (value&0x80);
-    registers.setFlags(Flag::N|Flag::H);
+    registers.resetFlags(Flag::N|Flag::H);
     registers.setFlags(Flag::Z, result == 0);
     registers.setFlags(Flag::C, value&1);
     registers.setU8(r, result);
@@ -919,7 +931,7 @@ void GB::SRL_n(Register r)
     */
     uint8_t value = registers.getU8(r);
     uint8_t result = (value>>1);
-    registers.setFlags(Flag::N|Flag::H);
+    registers.resetFlags(Flag::N|Flag::H);
     registers.setFlags(Flag::Z, result == 0);
     registers.setFlags(Flag::C, value&1);
     registers.setU8(r, result);
