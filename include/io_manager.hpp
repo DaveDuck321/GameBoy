@@ -42,6 +42,10 @@ const uint_fast16_t T_COUNTER = 0xFF05  - IO_OFFSET;
 const uint_fast16_t T_MODULO  = 0xFF06  - IO_OFFSET;
 const uint_fast16_t T_CONTROL = 0xFF07  - IO_OFFSET;
 
+//Serial
+const uint_fast16_t SERIAL_DATA = 0xFF01- IO_OFFSET;
+const uint_fast16_t SERIAL_CTL = 0xFF02 - IO_OFFSET;
+
 //Interrupts
 const uint8_t VSYNC_INTERRUPT = 0x01;
 const uint8_t STAT_INTERRUPT = 0x02;
@@ -92,7 +96,6 @@ class IO_Manager
         void drawLine() const;
 
         virtual void finishRender() const {};
-        // TODO: Add color palette parameter
         virtual void drawPixel(int color, int screenX, int screenY) const = 0;
 };
 
