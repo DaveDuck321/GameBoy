@@ -59,7 +59,7 @@ class IO_Manager
     uint64_t vCycleCount = 0;
     uint64_t tCycleCount = 0;
     // IO memory (not including video RAM)
-    std::array<uint8_t, 0x4C> memory;
+    std::array<uint8_t, 0x80> memory;
 
     protected:
     // Color pallets map a 2 bit pixel to a color
@@ -92,6 +92,7 @@ class IO_Manager
         void updateLCD();
         bool spriteOverridesPixel(int screenX, int screenY,  uint8_t &color) const;
         void backgroundPixel(int screenX, int screenY,  uint8_t &color) const;
+        void windowPixel(int screenX, int screenY,  uint8_t &color) const;
 
         void drawLine() const;
 

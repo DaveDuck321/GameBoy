@@ -15,6 +15,8 @@ class Memory
     std::array<uint8_t, 0x80> stack;
     std::array<uint8_t, 0x2000> workingRam;
 
+    void DMA(uint8_t uppeerAddr);
+
     public:
     Memory(Cartridge &cartridge, IO_Manager &io);
     uint8_t read(uint16_t addr) const;

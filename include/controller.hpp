@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <vector>
+#include <iostream>
 
 class Controller
 {
@@ -19,7 +20,10 @@ class Controller
 
     virtual void write(uint16_t addr, uint8_t value)
     {
-        throw std::runtime_error("Cannot write to ROM only card");
+        //ROM should just ignore write errors
+        //Some games write to the controller even if there's just ROM
+        //Print message for debugging anyway
+        std::cout << "ROM write requested! Addr: " << addr << " Value: " << (int)value << std::endl;
     }
 };
 
