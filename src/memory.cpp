@@ -114,7 +114,6 @@ void Memory::write(uint16_t addr, uint8_t value)
     case 0xFEA0 ... 0xFEFF:
         // Not Usable
         // Some games write anyway though...
-        std::cout << "Bad RAM address write: " << (int)addr << " Value: " << (int)value << std::endl; 
         break;
     case 0xFF00 ... 0xFF45: case 0xFF47 ... 0xFF7F:
         //IO ports (except 0xFF46)
@@ -140,7 +139,6 @@ void Memory::write(uint16_t addr, uint8_t value)
 
 void Memory::DMA(uint8_t srcUpper)
 {
-    //std::cout << "DMA transfer started" << std::endl;
     if(srcUpper > 0xF1) throw std::runtime_error("Invalid address for DMA Transfer!");
     // memcpy would probably save time, implementation would be messy though
     for(uint8_t offset=0; offset<0xA0; offset++)
@@ -149,5 +147,4 @@ void Memory::DMA(uint8_t srcUpper)
         uint16_t dstAddr = 0xFE00|offset;
         write(dstAddr, read(srcAddr));
     }
-    //std::cout << "DMA transfer finished" << std::endl;
 }

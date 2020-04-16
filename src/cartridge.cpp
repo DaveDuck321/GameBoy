@@ -2,7 +2,6 @@
 #include "controller.hpp"
 #include "controllers/mbc1.hpp"
 
-#include <memory>
 #include <fstream>
 
 Cartridge Cartridge::loadRom(const std::string& name)

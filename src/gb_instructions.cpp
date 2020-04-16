@@ -868,12 +868,8 @@ void GB::RRC_r(Register r)
         H - Reset.
         C - Contains old bit 0 data.
     */
-    //std::cout << "Input: "<<(int)registers.getU8(r) << ", CARRY: " << registers.getFlags(Flag::C) << std::endl;
-
     uint8_t result = ROT_RC(registers.getU8(r));
     registers.setFlags(Flag::Z, result==0);
-
-    //std::cout << "OUTPUT: "<<(int)result << ", CARRY: " << registers.getFlags(Flag::C) << std::endl;
     registers.setU8(r, result);
 }
 
