@@ -3,7 +3,6 @@
 
 #include <memory>
 
-
 typedef std::array<std::array<uint8_t, 0x02>, 0x08> Tile;
 typedef std::array<uint8_t, 4> SpriteAttribute;
 
@@ -50,6 +49,25 @@ const uint_fast16_t SERIAL_CTL = 0xFF02 - IO_OFFSET;
 const uint8_t VSYNC_INTERRUPT = 0x01;
 const uint8_t STAT_INTERRUPT = 0x02;
 const uint8_t TIMER_INTERRUPT = 0x04;
+const uint8_t SERIAL_INTERRUPT = 0x08;
+const uint8_t INPUT_INTERRUPT = 0x10;
+
+
+enum class Key
+{
+    // P14
+    RIGHT   = 0x01,
+    LEFT    = 0x02,
+    UP      = 0x04,
+    DOWN    = 0x08,
+
+    // P15
+    A = 0x10,
+    B = 0x20,
+    SELECT  = 0x40,
+    START   = 0x80
+};
+
 
 class IO_Manager
 {
@@ -60,6 +78,9 @@ class IO_Manager
     uint64_t tCycleCount = 0;
     // IO memory (not including video RAM)
     std::array<uint8_t, 0x80> memory;
+
+    // Inputs P14 (lower nibble) and P15 (upper nibble)
+    uint8_t inputs = 0xFF;
 
     protected:
     // Color pallets map a 2 bit pixel to a color
@@ -88,11 +109,16 @@ class IO_Manager
         void incrementTimer();
         void updateTimers(uint64_t cycle); 
 
+    // Input stuff
+        virtual void pollEvents() = 0;
+        void pressKey(Key key);
+        void releaseKey(Key key);
+
     // Display stuff
         void updateLCD();
-        bool spriteOverridesPixel(int screenX, int screenY,  uint8_t &color) const;
-        void backgroundPixel(int screenX, int screenY,  uint8_t &color) const;
-        void windowPixel(int screenX, int screenY,  uint8_t &color) const;
+        bool spriteOverridesPixel(int screenX, int screenY, uint8_t &color) const;
+        void backgroundPixel(int screenX, int screenY, uint8_t &color) const;
+        void windowPixel(int screenX, int screenY, uint8_t &color) const;
 
         void drawLine() const;
 

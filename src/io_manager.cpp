@@ -81,6 +81,7 @@ void IO_Manager::ioWrite(uint16_t addr, uint8_t value)
         //LY -- Scroll Y (r)
         throw std::runtime_error("Cannot write to LY @ 0xFF44");
     case 0xFF00:
+        //P1 Joypad
         memory[addr-IO_OFFSET] = 0xC0|(value&0x30);
         break;
     default:
@@ -94,10 +95,21 @@ uint8_t IO_Manager::ioRead(uint16_t addr) const
 {
     switch(addr)
     {
-    case 0xFF00:
+    case 0xFF00: {
         // Joypad TODO: keypresses
-        // Placeholder (all depressed)
-        return memory[addr-IO_OFFSET]|0x0F;
+        uint8_t value = 0xFF;
+        if(!(memory[addr-IO_OFFSET]&0x10))
+        {
+            // P14 select and any p14 pressed keys are 0
+            value &= 0xE0|(inputs&0x0F);
+        }
+        if(!(memory[addr-IO_OFFSET]&0x20))
+        {
+            // P15 select and any p15 pressed keys are 0
+            value &= 0xD0|(inputs>>4);
+        }
+        return value;
+    }
     case 0xFF46:
         // DMA reads are never allowed
         throw std::runtime_error("DMA read not permitted!");
@@ -154,6 +166,26 @@ void IO_Manager::updateTimers(uint64_t cycle)
             break;
     }
 }
+
+
+void IO_Manager::pressKey(Key key)
+{
+    /*
+    Presses key and triggers interrupt.
+    Only call once per keypress if interrupts are important
+    */
+    memory[INTERRUPTS] |= INPUT_INTERRUPT;
+    inputs &= ~static_cast<uint8_t>(key);
+}
+
+void IO_Manager::releaseKey(Key key)
+{
+    /*
+    Unpresses key, no interrupt is triggered
+    */
+    inputs |= static_cast<uint8_t>(key);
+}
+
 
 bool IO_Manager::spriteOverridesPixel(int screenX, int screenY, uint8_t &color) const
 {
@@ -326,6 +358,7 @@ void IO_Manager::updateLCD()
         default:
             // VBlank finished... flush screen
             vCycleCount = 0;
+            pollEvents();
             finishRender();
             break;
     }

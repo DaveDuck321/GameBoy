@@ -17,9 +17,10 @@ class SDL_Display: public IO_Manager
     SDL_Display();
     ~SDL_Display();
 
+    void pollEvents() override;
     void finishRender() const override;
 
-    virtual void drawPixel(int color, int screenX, int screenY) const;
+    void drawPixel(int color, int screenX, int screenY) const override;
 };
 
 #endif

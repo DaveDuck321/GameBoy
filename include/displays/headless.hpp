@@ -9,8 +9,8 @@ class Headless: public IO_Manager
 {
     private:
     public:
-
-    virtual void drawPixel(int color, int screenX, int screenY) const = 0;
+    void pollEvents() override {};
+    void drawPixel(int color, int screenX, int screenY) const override {};
 };
 
 #endif
