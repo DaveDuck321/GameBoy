@@ -5,8 +5,6 @@
 IO_Manager::IO_Manager()
 {
     memory.fill(0); //For debuging
-    // Set line count ready to wrap
-    memory[LCD_LY] = 255;
 }
 
 uint8_t IO_Manager::videoRead(uint16_t addr) const
@@ -82,9 +80,9 @@ void IO_Manager::ioWrite(uint16_t addr, uint8_t value)
     case 0xFF44:
         //LY -- Scroll Y (r)
         throw std::runtime_error("Cannot write to LY @ 0xFF44");
-    case 0xFF46:
-        //DMA -- DMA Transfer and start address (W)
-        throw std::runtime_error("DMA Transfer not implemented!");
+    case 0xFF00:
+        memory[addr-IO_OFFSET] = 0xC0|(value&0x30);
+        break;
     default:
         // Most IO actions don't require immediate action, deal with it later
         memory[addr-IO_OFFSET] = value;
@@ -94,9 +92,18 @@ void IO_Manager::ioWrite(uint16_t addr, uint8_t value)
 
 uint8_t IO_Manager::ioRead(uint16_t addr) const
 {
-    // DMA reads are never allowed
-    if(addr == 0xFF46) throw std::runtime_error("DMA read not permitted!");
-    return memory[addr-IO_OFFSET];
+    switch(addr)
+    {
+    case 0xFF00:
+        // Joypad TODO: keypresses
+        // Placeholder (all depressed)
+        return memory[addr-IO_OFFSET]|0x0F;
+    case 0xFF46:
+        // DMA reads are never allowed
+        throw std::runtime_error("DMA read not permitted!");
+    default:
+        return memory[addr-IO_OFFSET];
+    }
 }
 
 void IO_Manager::incrementTimer()
@@ -260,6 +267,8 @@ void IO_Manager::drawLine() const
 void IO_Manager::updateLCD()
 {
     // Timings from http://bgb.bircd.org/pandocs.htm#videodisplay
+    // y-scan should increment throughout the entire draw process
+    memory[LCD_LY] = vCycleCount/456;
     switch(vCycleCount)
     {
         case 0 ... 65663:
@@ -271,8 +280,6 @@ void IO_Manager::updateLCD()
                 // If H-Blank was successful, start rendering next line
                 if((memory[LCD_STAT]&0x03) != 0x02)
                 {
-                    // New row has started, increment counter
-                    memory[LCD_LY]++;
                     // Trigger interrupt if enabled
                     if((memory[LCD_STAT]&0x20))
                     {   // Could convert this to single bitwise
@@ -319,7 +326,6 @@ void IO_Manager::updateLCD()
         default:
             // VBlank finished... flush screen
             vCycleCount = 0;
-            memory[LCD_LY] = 255;
             finishRender();
             break;
     }
