@@ -107,7 +107,7 @@ class IO_Manager
         void ioWrite(uint16_t addr, uint8_t value);
 
         void incrementTimer();
-        void updateTimers(uint64_t cycle); 
+        void updateTimers(uint64_t cycle);
 
     // Input stuff
         virtual void pollEvents() = 0;
@@ -115,6 +115,7 @@ class IO_Manager
         void releaseKey(Key key);
 
     // Display stuff
+        bool setLCDStage(uint8_t stage, bool interrupt);
         void updateLCD();
         bool spriteOverridesPixel(int screenX, int screenY, uint8_t &color) const;
         void backgroundPixel(int screenX, int screenY, uint8_t &color) const;

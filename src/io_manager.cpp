@@ -296,6 +296,24 @@ void IO_Manager::drawLine() const
     }
 }
 
+bool IO_Manager::setLCDStage(uint8_t stage, bool interrupt)
+{
+    /*
+    Sets the first 2 bits of the LCD_STAT register to the selected stage.
+    Returns true if a new stage is entered
+    If enabled and a new stage is entered, trigger the interrupt flag.
+    */
+    if((memory[LCD_STAT]&0x03) != stage)
+    {
+        // Trigger interrupt if stage changed and interrupt enabled
+        if(interrupt)   memory[INTERRUPTS] |= STAT_INTERRUPT;
+
+        memory[LCD_STAT] = (memory[LCD_STAT]&0xF8) | stage;
+        return true;
+    }
+    return false;
+}
+
 void IO_Manager::updateLCD()
 {
     // Timings from http://bgb.bircd.org/pandocs.htm#videodisplay
@@ -309,16 +327,8 @@ void IO_Manager::updateLCD()
             {
             case 0 ... 77:
                 // Mode 2: (don't need to emulate OAM)
-                // If H-Blank was successful, start rendering next line
-                if((memory[LCD_STAT]&0x03) != 0x02)
-                {
-                    // Trigger interrupt if enabled
-                    if((memory[LCD_STAT]&0x20))
-                    {   // Could convert this to single bitwise
-                        memory[INTERRUPTS] |= STAT_INTERRUPT;
-                    }
-                }
-                memory[LCD_STAT] = (memory[LCD_STAT]&0xF8) | 0x02;
+                // Needs to trigger interrupt if enabled
+                setLCDStage(0x02, memory[LCD_STAT]&0x20);
                 break;
             case 78 ... 246:
                 // Mode 3: (don't need to emulate OAM)
@@ -326,34 +336,21 @@ void IO_Manager::updateLCD()
                 break;
             default:
                 // Mode 0: scan line needs to be drawn
-                // Only attempt draw once per line
-                if((memory[LCD_STAT]&0x03) != 0x00)
+                if(setLCDStage(0x00, memory[LCD_STAT]&0x08))
                 {
+                    // Only attempt draw once per line
                     drawLine();
-                    // Trigger interrupt if enabled
-                    if((memory[LCD_STAT]&0x08))
-                    {
-                        memory[INTERRUPTS] |= STAT_INTERRUPT;
-                    }
                 }
-                memory[LCD_STAT] = (memory[LCD_STAT]&0xF8);
                 break;
             }
             break;
         case 65664 ... 70223:
             // Mode 1: VBlank period
-            if((memory[LCD_STAT]&0x03) != 0x01)
+            if(setLCDStage(0x01, memory[LCD_STAT]&0x10))
             {
-                // Trigger vsync interrupt always
+                // Always trigger vsync interrupt
                 memory[INTERRUPTS] |= VSYNC_INTERRUPT;
-
-                // Trigger stat interrupt if enabled
-                if((memory[LCD_STAT]&0x10))
-                {
-                    memory[INTERRUPTS] |= STAT_INTERRUPT;
-                }
             }
-            memory[LCD_STAT] = (memory[LCD_STAT]&0xF8) | 0x01;
             break;
         default:
             // VBlank finished... flush screen
@@ -363,6 +360,7 @@ void IO_Manager::updateLCD()
             break;
     }
 
+    // Set compare register and trigger interrupts if needed
     memory[LCD_STAT] |= (memory[LCD_LY] == memory[LCD_LYC]) << 2;
     if((memory[LCD_STAT]&0x40) && (memory[LCD_STAT]&0x04))
     {
