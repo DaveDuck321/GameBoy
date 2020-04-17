@@ -23,8 +23,8 @@ const uint_fast16_t LCD_LY = 0xFF44     - IO_OFFSET; //Y-Coordinate
 const uint_fast16_t LCD_LYC = 0xFF45    - IO_OFFSET; //Y-Compare
 
 //Background scroll
-const uint_fast16_t GB_SCY = 0xFF42     - IO_OFFSET;
-const uint_fast16_t GB_SCX = 0xFF43     - IO_OFFSET;
+const uint_fast16_t BG_SCY = 0xFF42     - IO_OFFSET;
+const uint_fast16_t BG_SCX = 0xFF43     - IO_OFFSET;
 
 //Window position
 const uint_fast16_t WINDOW_Y = 0xFF4A   - IO_OFFSET;
@@ -82,6 +82,8 @@ class IO_Manager
     // Inputs P14 (lower nibble) and P15 (upper nibble)
     uint8_t inputs = 0xFF;
 
+    uint32_t windowOffsetY = 0;
+
     protected:
     // Color pallets map a 2 bit pixel to a color
 
@@ -118,8 +120,10 @@ class IO_Manager
         bool setLCDStage(uint8_t stage, bool interrupt);
         void updateLCD();
         bool spriteOverridesPixel(int screenX, int screenY, uint8_t &color) const;
+
+        uint8_t pixelFromMap(uint16_t mapX, uint16_t mapY, bool map1) const;
         void backgroundPixel(int screenX, int screenY, uint8_t &color) const;
-        void windowPixel(int screenX, int screenY, uint8_t &color) const;
+        bool windowOverridesPixel(int screenX, int screenY, uint8_t &color) const;
 
         void drawLine() const;
 

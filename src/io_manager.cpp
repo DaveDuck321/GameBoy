@@ -80,6 +80,10 @@ void IO_Manager::ioWrite(uint16_t addr, uint8_t value)
     case 0xFF44:
         //LY -- Scroll Y (r)
         throw std::runtime_error("Cannot write to LY @ 0xFF44");
+    case 0xFF4B:
+        std::cout << "Write to window x: " << (int)value << std::endl;
+        memory[addr-IO_OFFSET] = value;
+        break;
     case 0xFF00:
         //P1 Joypad
         memory[addr-IO_OFFSET] = 0xC0|(value&0x30);
@@ -167,7 +171,6 @@ void IO_Manager::updateTimers(uint64_t cycle)
     }
 }
 
-
 void IO_Manager::pressKey(Key key)
 {
     /*
@@ -211,7 +214,7 @@ bool IO_Manager::spriteOverridesPixel(int screenX, int screenY, uint8_t &color) 
         uint8_t tileY = (16+screenY)- attribs[0];
 
         // Mirror patterns if attrib is set
-        if((attribs[3]&0x20)) tileX = 8-tileX;
+        if((attribs[3]&0x20)) tileX = 7-tileX;
         if((attribs[3]&0x40)) tileY = height-tileY;
 
         // Gets the pattern table index of the current tile
@@ -228,7 +231,7 @@ bool IO_Manager::spriteOverridesPixel(int screenX, int screenY, uint8_t &color) 
         bool lower = (tile[tileY%8][1]>>(7-tileX)) & 1;
         uint8_t colorIndex = (upper<<1) + lower;
 
-        if(colorIndex == 0) return false; // Sprite at this location is transparent
+        if(colorIndex == 0) continue; // Sprite at this location is transparent
 
         // Select the color palette
         uint8_t colorPalette = memory[O0_Palette+(bool)(attribs[3]&0x10)];
@@ -242,18 +245,17 @@ bool IO_Manager::spriteOverridesPixel(int screenX, int screenY, uint8_t &color) 
     return false;
 }
 
-void IO_Manager::backgroundPixel(int screenX, int screenY, uint8_t &color) const
+uint8_t IO_Manager::pixelFromMap(uint16_t mapX, uint16_t mapY, bool map2) const
 {
     /*
-    Uses the background map and pattern data to set &color
-    If background color is zero, color is not modified
+    Returns the pixel located at the corresponding map coordinates
+    When map2 == False: backgroundMap1 is used for tile resolution
+    When map2 == True: backgroundMap2 is used for tile resolution
     */
-    int bgX = screenX + memory[GB_SCX];
-    int bgY = screenY + memory[GB_SCY];
 
     // Read tile index from correct background map
-    uint16_t tileIndex = backgroundMap1[(bgY/8)%0x20][(bgX/8)%0x20];
-    if((memory[LCDC]&0x08)) tileIndex = backgroundMap2[(bgY/8)%0x20][(bgX/8)%0x20];
+    uint16_t tileIndex = backgroundMap1[(mapY/8)%0x20][(mapX/8)%0x20];
+    if(map2) tileIndex = backgroundMap2[(mapY/8)%0x20][(mapX/8)%0x20];
 
     // Correct index using the signed lookup table if requested
     if(!(memory[LCDC]&0x10))
@@ -263,13 +265,46 @@ void IO_Manager::backgroundPixel(int screenX, int screenY, uint8_t &color) const
     }
 
     const Tile &tile = patternTables[tileIndex];
-    uint8_t upper = (tile[bgY%8][0]>>(7-bgX%8)) & 1;
-    uint8_t lower = (tile[bgY%8][1]>>(7-bgX%8)) & 1;
+    uint8_t upper = (tile[mapY%8][0]>>(7-mapX%8)) & 1;
+    uint8_t lower = (tile[mapY%8][1]>>(7-mapX%8)) & 1;
     uint8_t colorIndex = (upper<<1) + lower;
 
     // Gets the true background color
-    uint8_t bgColor = (memory[BG_Palette]>>(2*colorIndex))&0x3;
+    return (memory[BG_Palette]>>(2*colorIndex))&0x3;
+}
+
+void IO_Manager::backgroundPixel(int screenX, int screenY, uint8_t &color) const
+{
+    /*
+    Uses the background map and pattern data to set &color
+    If background color is zero, color is not modified
+    */
+    int bgX = screenX + memory[BG_SCX];
+    int bgY = screenY + memory[BG_SCY];
+
+    uint8_t bgColor = pixelFromMap(bgX, bgY, memory[LCDC]&0x08);
     if(bgColor!=0)  color = bgColor;
+}
+
+bool IO_Manager::windowOverridesPixel(int screenX, int screenY, uint8_t &color) const
+{
+    /*
+    Uses the window map and pattern data to set &color
+    Window is always drawn on top of background
+    */
+    int windowX = screenX-memory[WINDOW_X]+7;
+    int windowY = windowOffsetY- memory[WINDOW_Y];
+
+    if(memory[WINDOW_X]>166)
+    {
+        return false;
+    }
+    if(windowX>=0 && windowX<160 && windowY>=0 && windowY<144)
+    {
+        color = pixelFromMap(windowX, windowY, memory[LCDC]&0x40);
+        return true;
+    }
+    return false;
 }
 
 void IO_Manager::drawLine() const
@@ -279,6 +314,10 @@ void IO_Manager::drawLine() const
     This draws: background, window, sprites
     */
     int screenY = memory[LCD_LY];
+    if(memory[WINDOW_X]<=166 || memory[LCDC]&0x20)
+    {
+        (*const_cast<uint32_t*>(&windowOffsetY))++;
+    }
     for(int screenX=0; screenX<SCREEN_WIDTH; screenX++)
     {
         uint8_t pixelColor = 0;
@@ -287,10 +326,14 @@ void IO_Manager::drawLine() const
             drawPixel(pixelColor, screenX, screenY);
             continue;
         }
-        if((memory[LCDC]&0x01))
+        if((memory[LCDC]&0x20) && windowOverridesPixel(screenX, screenY, pixelColor))
         {
-            backgroundPixel(screenX, screenY, pixelColor);
+            drawPixel(pixelColor, screenX, screenY);
+            continue;
         }
+        if((memory[LCDC]&0x01))
+            backgroundPixel(screenX, screenY, pixelColor);
+        
 
         drawPixel(pixelColor, screenX, screenY);
     }
@@ -355,6 +398,7 @@ void IO_Manager::updateLCD()
         default:
             // VBlank finished... flush screen
             vCycleCount = 0;
+            windowOffsetY = 0;
             pollEvents();
             finishRender();
             break;
