@@ -69,6 +69,7 @@ void IO_Manager::ioWrite(uint16_t addr, uint8_t value)
     {
     case 0xFF04:
         //DIV -- Divider Register (cannot write data)
+        //updateTimers();
         memory[addr-IO_OFFSET] = 0;
         break;
     case 0xFF02:
@@ -88,6 +89,9 @@ void IO_Manager::ioWrite(uint16_t addr, uint8_t value)
         //P1 Joypad
         memory[addr-IO_OFFSET] = 0xC0|(value&0x30);
         break;
+    case 0xFF05:
+        // Should only update timers between instructions when accessed
+        updateTimers();
     default:
         // Most IO actions don't require immediate action, deal with it later
         memory[addr-IO_OFFSET] = value;
@@ -95,7 +99,7 @@ void IO_Manager::ioWrite(uint16_t addr, uint8_t value)
     }
 }
 
-uint8_t IO_Manager::ioRead(uint16_t addr) const
+uint8_t IO_Manager::ioRead(uint16_t addr)
 {
     switch(addr)
     {
@@ -117,6 +121,11 @@ uint8_t IO_Manager::ioRead(uint16_t addr) const
     case 0xFF46:
         // DMA reads are never allowed
         throw std::runtime_error("DMA read not permitted!");
+
+    case 0xFF04: case 0xFF05:
+        // Timers lazy update
+        // Should only update timers between instructions when accessed
+        updateTimers();
     default:
         return memory[addr-IO_OFFSET];
     }
@@ -133,7 +142,7 @@ void IO_Manager::reduceTimer(uint_fast16_t threshold)
         tCycleCount -= threshold;
 
         // Inc counter and detect overflow
-        if(++memory[T_COUNTER] == 0)
+        if(((++memory[T_COUNTER])&0xFF) == 0)
         {
             memory[T_COUNTER] = memory[T_MODULO];
             memory[INTERRUPTS] |= TIMER_INTERRUPT;
@@ -141,7 +150,7 @@ void IO_Manager::reduceTimer(uint_fast16_t threshold)
     }
 }
 
-void IO_Manager::updateTimers(uint64_t cycle)
+void IO_Manager::updateTimers()
 {
     uint64_t dt = cycle-lastCycle;
     lastCycle = cycle;

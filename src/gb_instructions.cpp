@@ -173,7 +173,7 @@ void GB::LD16_SP_HL()
     Description:
         Put HL into Stack Pointer (SP)
     */
-    cycle++; // 16-Bit load takes an extra cycle
+    io.cycle++; // 16-Bit load takes an extra cycle
     registers.sp = registers.getU16(Register::HL);
 }
 
@@ -214,7 +214,7 @@ void GB::PUSH(Register r)
         nn = AF,BC,DE,HL
     */
     //TODO: check order
-    cycle++; // PUSH takes extra cycle -- 16-Bit read?
+    io.cycle++; // PUSH takes extra cycle -- 16-Bit read?
     registers.sp -= 2;
     writeU16(registers.sp, registers.getU16(r));
 }
@@ -436,7 +436,7 @@ uint16_t GB::ADD16(uint16_t n1, uint16_t n2)
         H - Set if carry from bit 11.
         C - Set if carry from bit 15. 
     */
-    cycle++; //16-Bit maths takes an extra cycle
+    io.cycle++; //16-Bit maths takes an extra cycle
     registers.resetFlags(Flag::N);
     registers.setFlags(Flag::H, (n2&0x0FFF) > (0x0FFF - (n1&0x0FFF)));
     registers.setFlags(Flag::C, n2 > (0xFFFF - n1));
@@ -456,7 +456,7 @@ uint16_t GB::ADD16_SIGN(uint16_t nn, int8_t n)
         H - Set or reset according to operation.
         C - Set or reset according to operation.
     */
-    cycle++; // 16-Bit add takes an extra cycle
+    io.cycle++; // 16-Bit add takes an extra cycle
 
     uint8_t usign_n = *reinterpret_cast<uint8_t*>(&n);
     registers.setFlags(Flag::H, (usign_n&0x0F) > (0x0F - (registers.sp&0x0F)));
@@ -497,7 +497,7 @@ void GB::ADD16_SP_n(int8_t n)
         H - Set or reset according to operation.
         C - Set or reset according to operation.
     */
-    cycle++; //Takes 1 additional cycles
+    io.cycle++; //Takes 1 additional cycles
     registers.sp = ADD16_SIGN(registers.sp, n);
 }
 
@@ -511,7 +511,7 @@ void GB::INC16_nn(Register nn)
     Flags affected:
         None
     */
-    cycle++;
+    io.cycle++;
     registers.setU16(nn, registers.getU16(nn)+1);
 }
 
@@ -525,7 +525,7 @@ void GB::DEC16_nn(Register nn)
     Flags affected:
         None
     */
-    cycle++;
+    io.cycle++;
     registers.setU16(nn, registers.getU16(nn)-1);
 }
 
@@ -1005,7 +1005,7 @@ void GB::JP_nn(uint16_t nn)
     Use with:
         nn = two byte immediate value. (LS byte first.)
     */
-    cycle++; // Jumping takes 1 cycle
+    io.cycle++; // Jumping takes 1 cycle
     registers.pc = nn;
 }
 
@@ -1124,7 +1124,7 @@ void GB::RET_cc(Flag f, bool set)
         cc = NC, Return if C flag is reset.
         cc = C,  Return if C flag is set.
     */
-    cycle++; // This takes longer for some reason
+    io.cycle++; // This takes longer for some reason
     if(registers.getFlags(f) == set) RET();
 }
 

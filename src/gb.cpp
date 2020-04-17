@@ -19,7 +19,7 @@ GB::~GB()
 uint8_t GB::readU8(uint16_t addr)
 {
     // Reads an 8-Bit value from 'addr'
-    cycle++; // Under normal circumstances a read takes 1 cycle
+    io.cycle++; // Under normal circumstances a read takes 1 cycle
     return memory.read(addr);
 }
 
@@ -37,7 +37,7 @@ uint16_t GB::readU16(uint16_t addr)
 void GB::writeU8(uint16_t addr, uint8_t value)
 {
     // Writes an 8-Bit value to 'addr'
-    cycle++; // Under normal circumstances a write takes 1 cycle
+    io.cycle++; // Under normal circumstances a write takes 1 cycle
     memory.write(addr, value);
 }
 
@@ -105,7 +105,7 @@ void GB::handleInterrupts()
 void GB::update()
 {
     // Update timers for accurate delays
-    io.updateTimers(cycle);
+    io.updateTimers();
     // LCD update for drawing and interrupts
     io.updateLCD();
 
@@ -115,7 +115,7 @@ void GB::update()
     // Do nothing if waiting for interrupt
     if(registers.halt)
     {
-        cycle++; //Some time should pass to allow timers to trigger
+        io.cycle++; //Some time should pass to allow timers to trigger
         return;
     }
 
@@ -131,7 +131,7 @@ void GB::update()
 int main( int argc, char *argv[] )
 {
     SDL_Display display;
-    Cartridge card = Cartridge::loadRom("tests/cpu_instrs/individual/02-interrupts.gb");//"tests/cpu_instrs/cpu_instrs.gb");
+    Cartridge card = Cartridge::loadRom("tests/instr_timing/instr_timing.gb");
     GB gb(card, display);
     std::cout << std::hex;
 
