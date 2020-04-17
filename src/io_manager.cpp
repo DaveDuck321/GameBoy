@@ -81,7 +81,7 @@ void IO_Manager::ioWrite(uint16_t addr, uint8_t value)
         //LY -- Scroll Y (r)
         throw std::runtime_error("Cannot write to LY @ 0xFF44");
     case 0xFF4B:
-        std::cout << "Write to window x: " << (int)value << std::endl;
+        //std::cout << "Write to window x: " << (int)value << std::endl;
         memory[addr-IO_OFFSET] = value;
         break;
     case 0xFF00:
@@ -122,18 +122,22 @@ uint8_t IO_Manager::ioRead(uint16_t addr) const
     }
 }
 
-void IO_Manager::incrementTimer()
+void IO_Manager::reduceTimer(uint_fast16_t threshold)
 {
     /*
-    Increments and resets the current timer
+    Reduces the tCycleCount to within 'threshold' by incrementing the timer
     If timer overflows, an interrupt is triggered
     */
-    tCycleCount = 0;
-    // Inc counter and detect overflow
-    if(++memory[T_COUNTER] == 0)
+    while(tCycleCount >= threshold)
     {
-        memory[T_COUNTER] = memory[T_MODULO];
-        memory[INTERRUPTS] |= TIMER_INTERRUPT;
+        tCycleCount -= threshold;
+
+        // Inc counter and detect overflow
+        if(++memory[T_COUNTER] == 0)
+        {
+            memory[T_COUNTER] = memory[T_MODULO];
+            memory[INTERRUPTS] |= TIMER_INTERRUPT;
+        }
     }
 }
 
@@ -151,19 +155,19 @@ void IO_Manager::updateTimers(uint64_t cycle)
     {
         case 0x04:
             //4096 Hz
-            if(tCycleCount >= 256) incrementTimer();
+            reduceTimer(256);
             break;
         case 0x05:
             //262144 Hz
-            if(tCycleCount >= 4) incrementTimer();
+            reduceTimer(4);
             break;
         case 0x06:
             //65536 Hz
-            if(tCycleCount >= 16) incrementTimer();
+            reduceTimer(16);
             break;
         case 0x07:
             // 16384 Hz
-            if(tCycleCount >= 64) incrementTimer();
+            reduceTimer(64);
             break;
         default:
             //Timer is disabled

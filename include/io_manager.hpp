@@ -108,7 +108,7 @@ class IO_Manager
         uint8_t ioRead(uint16_t addr) const;
         void ioWrite(uint16_t addr, uint8_t value);
 
-        void incrementTimer();
+        void reduceTimer(uint_fast16_t threshold);
         void updateTimers(uint64_t cycle);
 
     // Input stuff
