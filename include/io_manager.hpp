@@ -99,17 +99,18 @@ class IO_Manager
     std::array<std::array<uint8_t, 0x20>, 0x20> backgroundMap2;
 
     public:
+    uint64_t cycle = 0;
 
     // Common IO stuff
         IO_Manager();
         uint8_t videoRead(uint16_t addr) const;
         void videoWrite(uint16_t addr, uint8_t value);
 
-        uint8_t ioRead(uint16_t addr) const;
+        uint8_t ioRead(uint16_t addr);
         void ioWrite(uint16_t addr, uint8_t value);
 
         void reduceTimer(uint_fast16_t threshold);
-        void updateTimers(uint64_t cycle);
+        void updateTimers();
 
     // Input stuff
         virtual void pollEvents() = 0;

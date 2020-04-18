@@ -69,14 +69,17 @@ void IO_Manager::ioWrite(uint16_t addr, uint8_t value)
     {
     case 0xFF04:
         //DIV -- Divider Register (cannot write data)
-        //updateTimers();
-        memory[addr-IO_OFFSET] = 0;
+        throw std::runtime_error("DIV write unsupported");
         break;
     case 0xFF02:
         //SC -- SIO control (r/w)
         // Immediately display serial data to console
-        std::cout<<memory[SERIAL_DATA];
+        //std::cout<<memory[SERIAL_DATA];
         memory[addr-IO_OFFSET] = value;
+        break;
+    case 0xFF41:
+        // LCD Status Register
+        memory[LCD_STAT] = 0x80|(memory[LCD_STAT]&0x07)|(value&0x78);
         break;
     case 0xFF44:
         //LY -- Scroll Y (r)
@@ -122,6 +125,29 @@ uint8_t IO_Manager::ioRead(uint16_t addr)
         // DMA reads are never allowed
         throw std::runtime_error("DMA read not permitted!");
 
+    //Sound
+    case 0xFF10:
+        return 0x80|memory[addr-IO_OFFSET];
+    case 0xFF11:
+        return 0x3F|memory[addr-IO_OFFSET];
+    case 0xFF13: case 0xFF18: case 0xFF1D:
+        return 0xFF;
+    case 0xFF14: case 0xFF19: case 0xFF1E:
+        return 0xBF|memory[addr-IO_OFFSET];
+    case 0xFF16:
+        return 0x3F|memory[addr-IO_OFFSET];
+    case 0xFF1A:
+        return 0x7F|memory[addr-IO_OFFSET];
+    case 0xFF1C:
+        return 0xF9|memory[addr-IO_OFFSET];
+    case 0xFF20:
+        return 0xC0|memory[addr-IO_OFFSET];
+    case 0xFF23:
+        return 0xBF|memory[addr-IO_OFFSET];
+    case 0xFF26:
+        std::cout << "Read NR52 requested" << std::endl;
+        throw std::runtime_error("Read NR52 requested");
+    //Video
     case 0xFF04: case 0xFF05:
         // Timers lazy update
         // Should only update timers between instructions when accessed
@@ -418,7 +444,7 @@ void IO_Manager::updateLCD()
     }
 
     // Set compare register and trigger interrupts if needed
-    memory[LCD_STAT] |= (memory[LCD_LY] == memory[LCD_LYC]) << 2;
+    memory[LCD_STAT] = (memory[LCD_STAT]&0xFB) | ((memory[LCD_LY] == memory[LCD_LYC]) << 2);
     if((memory[LCD_STAT]&0x40) && (memory[LCD_STAT]&0x04))
     {
         memory[INTERRUPTS] |= STAT_INTERRUPT;
