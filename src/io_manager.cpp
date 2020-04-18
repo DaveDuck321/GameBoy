@@ -146,7 +146,7 @@ uint8_t IO_Manager::ioRead(uint16_t addr)
         return 0xBF|memory[addr-IO_OFFSET];
     case 0xFF26:
         std::cout << "Read NR52 requested" << std::endl;
-        throw std::runtime_error("Read NR52 requested");
+        //throw std::runtime_error("Read NR52 requested");
     //Video
     case 0xFF04: case 0xFF05:
         // Timers lazy update
@@ -238,7 +238,7 @@ bool IO_Manager::spriteOverridesPixel(int screenX, int screenY, uint8_t &color) 
     */
 
     // Set to 8 of 16 height mode
-    uint8_t height = 8 + 2*(memory[LCDC]&0x04);
+    uint8_t height = 8 + ((memory[LCDC]&0x04)<<1);
     // Sprites are enabled, draw them
     for(const SpriteAttribute &attribs : sprites)
     {
@@ -261,7 +261,7 @@ bool IO_Manager::spriteOverridesPixel(int screenX, int screenY, uint8_t &color) 
         if((memory[LCDC]&0x04))
         {
             // 16px height -- ignore lower bit
-            tileIndex = (attribs[2]&0x02)+(tileY>7);
+            tileIndex = (attribs[2]&0xFE)+(tileY>7);
         }
 
         // Extract color from tile and color palette
