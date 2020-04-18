@@ -82,11 +82,16 @@ void GB::handleInterrupts()
     uint8_t triggered = memory.read(0xFFFF) & memory.read(0xFF0F) & 0x1F;
     if(triggered)
     {
+        // Interrupts take an extra cycle if halted
+        io.cycle += registers.halt;
         // Interrupt has been triggered, halt should immediately terminate
         registers.halt = false;
 
         // Dont do anything if interrupts are globally disabled
         if(!registers.IME[0]) return;
+
+        // Triggering the interrupt takes 5 machine cycles (PUSH already takes 1)
+        //io.cycle++;
 
         // Disable interrupts, until serviced
         registers.IME.fill(false);
@@ -94,7 +99,7 @@ void GB::handleInterrupts()
         {
             if((triggered&(1<<bit)))
             {
-                memory.write(0xFF0F, memory.read(0xFF0F)^(1<<bit));
+                writeU8(0xFF0F, readU8(0xFF0F)^(1<<bit));
                 CALL_nn(0x40 + 0x08*bit);
                 break;
             }
