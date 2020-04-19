@@ -1,6 +1,14 @@
 #include "displays/sdl_display.hpp"
 
 #include <iostream>
+#include <array>
+
+std::array<std::array<int, 3>, 4> colorsRGB {{
+    {{181, 229, 6}},
+    {{139, 172, 15}},
+    {{48, 98, 48}},
+    {{15, 56, 15}}
+}};
 
 SDL_Display::SDL_Display()
 {
@@ -8,10 +16,11 @@ SDL_Display::SDL_Display()
     window = SDL_CreateWindow(
         "Gameboy",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        600, 400,
+        2*SCREEN_WIDTH, 2*SCREEN_HEIGHT,
         SDL_WINDOW_SHOWN
     );
     renderer = SDL_CreateRenderer(window, -1, 0);
+    SDL_RenderSetScale(renderer, 2.0f, 2.0f);
 }
 
 SDL_Display::~SDL_Display()
@@ -78,9 +87,7 @@ void SDL_Display::finishRender() const
 
 void SDL_Display::drawPixel(int color, int screenX, int screenY) const
 {
-    int intensity = (((float)color)/3.0f) * 255;
-
-    SDL_SetRenderDrawColor(renderer, intensity, intensity, intensity, 255);
+    SDL_SetRenderDrawColor(renderer, colorsRGB[color][0], colorsRGB[color][1], colorsRGB[color][2], 255);
     SDL_RenderDrawPoint(renderer, screenX, screenY);
 }
 
