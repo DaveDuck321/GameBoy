@@ -41,6 +41,10 @@ const uint_fast16_t T_COUNTER = 0xFF05  - IO_OFFSET;
 const uint_fast16_t T_MODULO  = 0xFF06  - IO_OFFSET;
 const uint_fast16_t T_CONTROL = 0xFF07  - IO_OFFSET;
 
+//Sound
+const uint_fast16_t NR10_REG = 0xFF10   - IO_OFFSET;
+const uint_fast16_t NR52_REG = 0xFF26   - IO_OFFSET;
+
 //Serial
 const uint_fast16_t SERIAL_DATA = 0xFF01- IO_OFFSET;
 const uint_fast16_t SERIAL_CTL = 0xFF02 - IO_OFFSET;
@@ -112,6 +116,9 @@ class IO_Manager
         void reduceTimer(uint_fast16_t threshold);
         void updateTimers();
 
+    // Sound stuff
+        void powerDownAPU();
+        void powerUpAPU();
     // Input stuff
         virtual void pollEvents() = 0;
         void pressKey(Key key);

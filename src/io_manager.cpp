@@ -1,5 +1,6 @@
 #include "io_manager.hpp"
 
+#include <algorithm>
 #include <iostream>
 
 IO_Manager::IO_Manager()
@@ -74,7 +75,7 @@ void IO_Manager::ioWrite(uint16_t addr, uint8_t value)
     case 0xFF02:
         //SC -- SIO control (r/w)
         // Immediately display serial data to console
-        //std::cout<<memory[SERIAL_DATA];
+        std::cout<<memory[SERIAL_DATA];
         memory[addr-IO_OFFSET] = value;
         break;
     case 0xFF41:
@@ -88,6 +89,12 @@ void IO_Manager::ioWrite(uint16_t addr, uint8_t value)
         //std::cout << "Write to window x: " << (int)value << std::endl;
         memory[addr-IO_OFFSET] = value;
         break;
+    case 0xFF26:
+        //NR52 - Sound on/off
+        // All bits are read only except 7 (Sound on/off)
+        if((value&0x80))    powerUpAPU();
+        else                powerDownAPU();
+        break;
     case 0xFF00:
         //P1 Joypad
         memory[addr-IO_OFFSET] = 0xC0|(value&0x30);
@@ -95,6 +102,13 @@ void IO_Manager::ioWrite(uint16_t addr, uint8_t value)
     case 0xFF05:
         // Should only update timers between instructions when accessed
         updateTimers();
+        memory[addr-IO_OFFSET] = value;
+        break;
+    case 0xFF10 ... 0xFF25:
+        // All Sound Control registers
+        // Writing to registers should only be possible when APU is powered
+        if(!(memory[NR52_REG]&0x80)) break;
+    //Intentional fall through
     default:
         // Most IO actions don't require immediate action, deal with it later
         memory[addr-IO_OFFSET] = value;
@@ -128,25 +142,23 @@ uint8_t IO_Manager::ioRead(uint16_t addr)
     //Sound
     case 0xFF10:
         return 0x80|memory[addr-IO_OFFSET];
-    case 0xFF11:
+    case 0xFF11: case 0xFF16:
         return 0x3F|memory[addr-IO_OFFSET];
-    case 0xFF13: case 0xFF18: case 0xFF1D:
+    case 0xFF13: case 0xFF15: case 0xFF18: case 0xFF1B: case 0xFF1D: case 0xFF1F: case 0xFF20:
         return 0xFF;
-    case 0xFF14: case 0xFF19: case 0xFF1E:
+    case 0xFF14: case 0xFF19: case 0xFF23: case 0xFF1E:
         return 0xBF|memory[addr-IO_OFFSET];
-    case 0xFF16:
-        return 0x3F|memory[addr-IO_OFFSET];
     case 0xFF1A:
         return 0x7F|memory[addr-IO_OFFSET];
     case 0xFF1C:
-        return 0xF9|memory[addr-IO_OFFSET];
-    case 0xFF20:
-        return 0xC0|memory[addr-IO_OFFSET];
-    case 0xFF23:
-        return 0xBF|memory[addr-IO_OFFSET];
+        return 0x9F|memory[addr-IO_OFFSET];
     case 0xFF26:
-        std::cout << "Read NR52 requested" << std::endl;
-        //throw std::runtime_error("Read NR52 requested");
+        //TODO: real implementation
+        return 0x70|memory[addr-IO_OFFSET];
+    case 0xFF27 ... 0xFF2F:
+        // Invalid memory, should always give 0xFF
+        return 0xFF;
+
     //Video
     case 0xFF04: case 0xFF05:
         // Timers lazy update
@@ -174,6 +186,25 @@ void IO_Manager::reduceTimer(uint_fast16_t threshold)
             memory[INTERRUPTS] |= TIMER_INTERRUPT;
         }
     }
+}
+
+void IO_Manager::powerDownAPU()
+{
+    /*
+    Powers down the APU and clears all related sound registers.
+    This disables all writing until APU is powered up again 
+    */
+    memory[NR52_REG] &= 0x7F;
+    std::fill(memory.begin()+NR10_REG, memory.begin()+NR52_REG, 0);
+}
+
+void IO_Manager::powerUpAPU()
+{
+    /*
+    Powers up the APU while maintaining register values.
+    This enables all writing.
+    */
+    memory[NR52_REG] |= 0x80;
 }
 
 void IO_Manager::updateTimers()
