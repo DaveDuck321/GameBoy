@@ -283,7 +283,6 @@ bool IO_Manager::spriteOverridesPixel(int screenX, int screenY, uint8_t &color) 
     If this color is definitely in the forground, returns true.
     If no color can be found or the color is transparent, color is not modified
     */
-
     // Set to 8 of 16 height mode
     uint8_t height = 8 + ((memory[LCDC]&0x04)<<1);
     // Sprites are enabled, draw them
@@ -291,13 +290,13 @@ bool IO_Manager::spriteOverridesPixel(int screenX, int screenY, uint8_t &color) 
     {
         // TODO: maybe implement sprite count bug?
         // Check if sprite contains x coord
-        if(attribs[1]-8 > screenX || attribs[1] <= screenX) continue;
-        if(attribs[0]-16 > screenY || (attribs[0]+height)-16 <= screenY) continue;
+        if((attribs[1] > screenX+8) || (attribs[1] <= screenX)) continue;
+        if((attribs[0] > screenY+16) || (attribs[0]+height <= screenY+16)) continue;
 
         // Pixel is definitely in current sprite
         // Get relative tile coord
-        uint8_t tileX = (8+screenX) - attribs[1];
-        uint8_t tileY = (16+screenY)- attribs[0];
+        uint8_t tileX = (8 + screenX) - attribs[1];
+        uint8_t tileY = (16 + screenY) - attribs[0];
 
         // Mirror patterns if attrib is set
         if((attribs[3]&0x20)) tileX = 7-tileX;
@@ -313,17 +312,17 @@ bool IO_Manager::spriteOverridesPixel(int screenX, int screenY, uint8_t &color) 
 
         // Extract color from tile and color palette
         const Tile &tile = patternTables[tileIndex];
-        bool upper = (tile[tileY%8][0]>>(7-tileX)) & 1;
-        bool lower = (tile[tileY%8][1]>>(7-tileX)) & 1;
-        uint8_t colorIndex = (upper<<1) + lower;
+        bool upper = (tile[tileY%8][1]>>(7-tileX)) & 1;
+        bool lower = (tile[tileY%8][0]>>(7-tileX)) & 1;
+        uint8_t colorIndex = (upper<<1) | lower;
 
         if(colorIndex == 0) continue; // Sprite at this location is transparent
 
         // Select the color palette
-        uint8_t colorPalette = memory[O0_Palette+(bool)(attribs[3]&0x10)];
+        uint8_t colorPalette = memory[O0_Palette+((attribs[3]&0x10)>>4)];
 
         // Sets color reference and returns
-        color = (colorPalette>>(2*colorIndex))&0x3;
+        color = (colorPalette>>(2*colorIndex))&0x03;
 
         // First sprite has draw priority so return immediately
         return !(attribs[3]&0x80); // Attrib 7 determines forground priority
@@ -351,8 +350,8 @@ uint8_t IO_Manager::pixelFromMap(uint16_t mapX, uint16_t mapY, bool map2) const
     }
 
     const Tile &tile = patternTables[tileIndex];
-    uint8_t upper = (tile[mapY%8][0]>>(7-mapX%8)) & 1;
-    uint8_t lower = (tile[mapY%8][1]>>(7-mapX%8)) & 1;
+    uint8_t upper = (tile[mapY%8][1]>>(7-mapX%8)) & 1;
+    uint8_t lower = (tile[mapY%8][0]>>(7-mapX%8)) & 1;
     uint8_t colorIndex = (upper<<1) + lower;
 
     // Gets the true background color
