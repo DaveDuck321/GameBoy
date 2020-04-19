@@ -436,7 +436,7 @@ bool IO_Manager::setLCDStage(uint8_t stage, bool interrupt)
         // Trigger interrupt if stage changed and interrupt enabled
         if(interrupt)   memory[INTERRUPTS] |= STAT_INTERRUPT;
 
-        memory[LCD_STAT] = (memory[LCD_STAT]&0xF8) | stage;
+        memory[LCD_STAT] = (memory[LCD_STAT]&0xFC) | stage;
         return true;
     }
     return false;
@@ -456,11 +456,17 @@ void IO_Manager::updateLCD()
             case 0 ... 77:
                 // Mode 2: (don't need to emulate OAM)
                 // Needs to trigger interrupt if enabled
-                setLCDStage(0x02, memory[LCD_STAT]&0x20);
+                if(setLCDStage(0x02, memory[LCD_STAT]&0x20))
+                {
+                    // Set compare register and trigger interrupts if needed
+                    memory[LCD_STAT] = (memory[LCD_STAT]&0xFB) | ((memory[LCD_LY] == memory[LCD_LYC]) << 2);
+                    if((memory[LCD_STAT]&0x40) && (memory[LCD_STAT]&0x04))
+                        memory[INTERRUPTS] |= STAT_INTERRUPT;
+                }
                 break;
             case 78 ... 246:
                 // Mode 3: (don't need to emulate OAM)
-                memory[LCD_STAT] = (memory[LCD_STAT]&0xF8) | 0x03;
+                memory[LCD_STAT] = (memory[LCD_STAT]&0xFC) | 0x03;
                 break;
             default:
                 // Mode 0: scan line needs to be drawn
@@ -487,12 +493,5 @@ void IO_Manager::updateLCD()
             pollEvents();
             finishRender();
             break;
-    }
-
-    // Set compare register and trigger interrupts if needed
-    memory[LCD_STAT] = (memory[LCD_STAT]&0xFB) | ((memory[LCD_LY] == memory[LCD_LYC]) << 2);
-    if((memory[LCD_STAT]&0x40) && (memory[LCD_STAT]&0x04))
-    {
-        memory[INTERRUPTS] |= STAT_INTERRUPT;
     }
 }
