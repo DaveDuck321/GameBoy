@@ -3,11 +3,12 @@
 #include <iostream>
 #include <array>
 
-std::array<std::array<int, 3>, 4> colorsRGB {{
-    {{181, 229, 6}},
-    {{139, 172, 15}},
-    {{48, 98, 48}},
-    {{15, 56, 15}}
+std::array<std::array<int, 3>, 5> colorsRGB {{
+    {{236, 247, 207}},
+    {{145, 204, 120}},
+    {{47, 116, 86}},
+    {{8, 24, 28}},
+    {{255, 0, 0}}
 }};
 
 SDL_Display::SDL_Display()
@@ -90,4 +91,3 @@ void SDL_Display::drawPixel(int color, int screenX, int screenY) const
     SDL_SetRenderDrawColor(renderer, colorsRGB[color][0], colorsRGB[color][1], colorsRGB[color][2], 255);
     SDL_RenderDrawPoint(renderer, screenX, screenY);
 }
-
