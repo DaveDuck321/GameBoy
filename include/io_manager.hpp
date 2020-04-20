@@ -106,7 +106,6 @@ class IO_Manager
     uint64_t cycle = 0;
 
     // Common IO stuff
-        IO_Manager();
         uint8_t videoRead(uint16_t addr) const;
         void videoWrite(uint16_t addr, uint8_t value);
 

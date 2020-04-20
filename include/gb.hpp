@@ -12,12 +12,11 @@
 //https://github.com/gbdev/awesome-gbdev#testing
 //https://rednex.github.io/rgbds/gbz80.7.html
 //https://pastraiser.com/cpu/gameboy/gameboy_opcodes.html
+//https://github.com/AntonioND/giibiiadvance/blob/master/docs/TCAGBD.pdf <-- Amazing, wish I found this sooner
 
 class GB
 {
     public:
-    uint64_t cycle = 0;
-
     Cartridge &cartridge;
     IO_Manager &io;
     CPURegisters registers;
