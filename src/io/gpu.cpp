@@ -171,6 +171,13 @@ void IO_Manager::updateLCD()
 {
     // Timings from http://bgb.bircd.org/pandocs.htm#videodisplay
     // y-scan should increment throughout the entire draw process
+    if(!(memory[LCDC]&0x80))
+    {
+        vCycleCount = 0;
+        memory[LCD_LY] = 0;
+        memory[LCD_STAT] = (memory[LCD_STAT]&0xFC);
+        return;
+    }
     memory[LCD_LY] = vCycleCount/456;
     switch(vCycleCount)
     {
