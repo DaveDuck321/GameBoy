@@ -66,8 +66,8 @@ void IO_Manager::ioWrite(uint16_t addr, uint8_t value)
         break;
     case 0xFF02:
         //SC -- SIO control (r/w)
-        // Immediately display serial data to console
-        //std::cout<<memory[SERIAL_DATA];
+        // Immediately display serial data to output
+        sendSerial(memory[SERIAL_DATA]);
         memory[addr-IO_OFFSET] = value;
         break;
     case 0xFF04:

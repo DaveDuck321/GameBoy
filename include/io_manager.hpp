@@ -120,6 +120,8 @@ class IO_Manager
         void powerUpAPU();
     // Input stuff
         virtual void pollEvents() = 0;
+        virtual void sendSerial(uint8_t value) = 0;
+
         void pressKey(Key key);
         void releaseKey(Key key);
 

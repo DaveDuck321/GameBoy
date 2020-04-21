@@ -1,4 +1,4 @@
-#include "displays/sdl_display.hpp"
+#include "displays/sdl_io.hpp"
 
 #include <iostream>
 #include <array>
@@ -11,7 +11,8 @@ std::array<std::array<int, 3>, 5> colorsRGB {{
     {{255, 0, 0}}
 }};
 
-SDL_Display::SDL_Display()
+
+SDL_IO::SDL_IO()
 {
     SDL_Init(SDL_INIT_EVERYTHING);
     window = SDL_CreateWindow(
@@ -24,48 +25,48 @@ SDL_Display::SDL_Display()
     SDL_RenderSetScale(renderer, 2.0f, 2.0f);
 }
 
-SDL_Display::~SDL_Display()
+SDL_IO::~SDL_IO()
 {
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
 }
 
-void SDL_Display::pollEvents()
+void SDL_IO::pollEvents()
 {
     SDL_Event event;
     while(SDL_PollEvent(&event))
     {
-        auto keyAction = &SDL_Display::releaseKey;
+        auto keyAction = &SDL_IO::releaseKey;
         switch(event.type)
         {
         case SDL_KEYDOWN:
-            keyAction = &SDL_Display::pressKey;
+            keyAction = &SDL_IO::pressKey;
         case SDL_KEYUP:
-            switch (event.key.keysym.scancode)
+            switch (event.key.keysym.sym)
             {
-            case SDL_SCANCODE_LEFT:
+            case SDLK_LEFT:
                 (this->*keyAction)(Key::LEFT);
                 break;
-            case SDL_SCANCODE_RIGHT:
+            case SDLK_RIGHT:
                 (this->*keyAction)(Key::RIGHT);
                 break;
-            case SDL_SCANCODE_UP:
+            case SDLK_UP:
                 (this->*keyAction)(Key::UP);
                 break;
-            case SDL_SCANCODE_DOWN:
+            case SDLK_DOWN:
                 (this->*keyAction)(Key::DOWN);
                 break;
-            case SDL_SCANCODE_W:
+            case SDLK_w:
                 (this->*keyAction)(Key::A);
                 break;
-            case SDL_SCANCODE_Q:
+            case SDLK_q:
                 (this->*keyAction)(Key::B);
                 break;
-            case SDL_SCANCODE_RETURN:
+            case SDLK_RETURN:
                 (this->*keyAction)(Key::SELECT);
                 break;
-            case SDL_SCANCODE_SPACE:
+            case SDLK_SPACE:
                 (this->*keyAction)(Key::START);
                 break;
             default:
@@ -81,12 +82,12 @@ void SDL_Display::pollEvents()
     }
 }
 
-void SDL_Display::finishRender() const
+void SDL_IO::finishRender() const
 {
     SDL_RenderPresent(renderer);
 }
 
-void SDL_Display::drawPixel(int color, int screenX, int screenY) const
+void SDL_IO::drawPixel(int color, int screenX, int screenY) const
 {
     SDL_SetRenderDrawColor(renderer, colorsRGB[color][0], colorsRGB[color][1], colorsRGB[color][2], 255);
     SDL_RenderDrawPoint(renderer, screenX, screenY);

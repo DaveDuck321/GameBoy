@@ -1,6 +1,4 @@
 #include "gb.hpp"
-#include "displays/sdl_display.hpp"
-#include <iostream>
 
 GB::GB(Cartridge &cartridge, IO_Manager &io):
     cartridge(cartridge),
@@ -123,20 +121,4 @@ void GB::update()
     nextOP();
     registers.IME[0] = registers.IME[1];
     registers.IME[1] = registers.IME[2];
-}
-
-//Fails
-//11-op a,(hl).gb
-
-int main( int argc, char *argv[] )
-{
-    SDL_Display display;
-    Cartridge card = Cartridge::loadRom("tests/instr_timing/instr_timing.gb");
-    GB gb(card, display);
-    std::cout << std::hex;
-
-    for(int i = 0; ; i++) {
-        gb.update();
-    }
-    return EXIT_SUCCESS;
 }

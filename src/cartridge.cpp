@@ -7,6 +7,7 @@
 Cartridge Cartridge::loadRom(const std::string& name)
 {
     std::ifstream input(name, std::ios::binary);
+    if(!input)  throw std::runtime_error("Couldn't read ROM");
 
     return Cartridge(
         std::vector<uint8_t>(

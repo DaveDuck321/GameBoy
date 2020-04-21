@@ -654,7 +654,6 @@ void GB::STOP()
     Description:
         Halt CPU & LCD display until button pressed
     */
-    throw std::runtime_error("STOP Not implemented");
 }
 
 void GB::DI()
