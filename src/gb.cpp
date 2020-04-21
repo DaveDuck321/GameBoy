@@ -6,7 +6,7 @@ GB::GB(Cartridge &cartridge, IO_Manager &io):
     registers(*this),
     memory(cartridge, io)
 {
-
+    io.gameTitle = cartridge.gameName.c_str();
 }
 
 GB::~GB()

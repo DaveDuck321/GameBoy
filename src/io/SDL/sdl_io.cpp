@@ -22,11 +22,11 @@ SDL_IO::SDL_IO()
     window = SDL_CreateWindow(
         "Gameboy",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        2*SCREEN_WIDTH, 2*SCREEN_HEIGHT,
+        3*SCREEN_WIDTH, 3*SCREEN_HEIGHT,
         SDL_WINDOW_SHOWN
     );
     renderer = SDL_CreateRenderer(window, -1, 0);
-    SDL_RenderSetScale(renderer, 2.0f, 2.0f);
+    SDL_RenderSetScale(renderer, 3.0f, 3.0f);
 
     lastFrameTime = SDL_GetTicks();
     lastFPSUpdate = high_resolution_clock::now();
@@ -58,10 +58,10 @@ void SDL_IO::pollEvents()
     if(timeSinceUpdate.count()>0.5)
     {
         std::stringstream title;
-        if(lagframe)    title << "Lagging: ";
 
         double fps = frames/timeSinceUpdate.count();
-        title << "FPS: " << fps;
+        title << gameTitle << " :: FPS: " << fps;
+        if(lagframe)    title << " -- lagging";
         SDL_SetWindowTitle(window, title.str().c_str());
         // Reset counters
         frames = 0;
@@ -77,6 +77,12 @@ void SDL_IO::pollEvents()
         switch(event.type)
         {
         case SDL_KEYDOWN:
+            if(event.key.keysym.sym == SDLK_s)
+            {
+                // Toggle speedup mode and render next frame
+                realtime = !realtime;
+                frameScheduled = true;
+            }
             keyAction = &SDL_IO::pressKey;
         case SDL_KEYUP:
             switch (event.key.keysym.sym)

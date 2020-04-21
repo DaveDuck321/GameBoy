@@ -110,6 +110,7 @@ class IO_Manager
     std::array<std::array<uint8_t, 0x20>, 0x20> backgroundMap2;
 
     public:
+    const char *gameTitle = "";
     bool frameScheduled = true;
     uint64_t cycle = 0;
 
