@@ -3,8 +3,10 @@
 #include "displays/headless.hpp"
 
 #include <iomanip>
+#include <stdlib.h>
 #include <string>
 #include <sstream>
+#include <chrono>
 
 std::array<std::array<const char *, 2>, 14> testROMs = {{
     {{"Blargg's CPU Tests",             "tests/cpu_instrs/cpu_instrs.gb"}},
@@ -112,6 +114,43 @@ bool passesAllTests()
     return false;
 }
 
+
+void runBenchmarkHeadless(const char* rom, uint64_t updates)
+{
+    /*
+    Loads a rom and times its emulation for a given number of updates.
+    The internal clock of the GameBoy is used to determine the emulator's performance.
+    Rom is run in headless mode... only CPU performance is measured.
+    */
+    using namespace std::chrono;
+
+    std::stringstream serialOut;
+    Headless display(serialOut);
+    Cartridge card = Cartridge::loadRom(rom);
+
+    GB gb(card, display);
+    std::cout << "ROM loaded!" << std::endl;
+    std::cout << "Starting Benchmark of " << updates << " updates" << std::endl;
+
+    // Only start clock after GameBoy is loaded to memory
+    high_resolution_clock::time_point start = high_resolution_clock::now();
+    for(uint64_t i = 0; i < updates; i++)
+    {
+        gb.update();
+    }
+    high_resolution_clock::time_point end = high_resolution_clock::now();
+
+    duration<double, std::milli> time = end-start;
+    double emulatorTime = time.count();
+    double gameboyTime = ((double)gb.io.cycle * 1000.0)/((double)FREQUENCY);
+    double speedMult = gameboyTime/emulatorTime;
+
+    std::cout << "Completed Benchmark in: " << emulatorTime << "ms" << std::endl << std::endl;
+    std::cout << "Cycles completed: " << gb.io.cycle << " (" << gameboyTime << "ms)" << std::endl;
+    std::cout << "The emulator runs @ " << (59.73 * speedMult) << " fps" << std::endl;
+    std::cout << "That is " << speedMult << "x faster than the GameeBoy" << std::endl;
+}
+
 void runGame(const char* rom)
 {
     /*
@@ -135,10 +174,16 @@ int main( int argc, const char *argv[] )
     switch (argc)
     {
     case 1:
+        // Test mode
         if(!passesAllTests()) return EXIT_FAILURE;
         break;
     case 2:
+        // Standard game mode
         runGame(argv[1]);
+        break;
+    case 3:
+        // Benchmarking mode
+        runBenchmarkHeadless(argv[1], atoll(argv[2]));
         break;
     default:
         std::cerr << "Program requires 1 argument: ROM Path" << std::endl;
