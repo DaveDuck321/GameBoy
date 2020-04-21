@@ -4,12 +4,18 @@
 #include <memory>
 
 typedef std::array<std::array<uint8_t, 0x02>, 0x08> Tile;
-typedef std::array<uint8_t, 4> SpriteAttribute;
+struct SpriteAttribute
+{
+    uint8_t y;
+    uint8_t x;
+    uint8_t tile;
+    uint8_t attribs;
+};
 
 //General GameBoy info
-
 const uint8_t SCREEN_WIDTH = 160;
 const uint8_t SCREEN_HEIGHT = 144;
+const uint64_t FREQUENCY = 1048576ul;
 
 const uint_fast16_t IO_OFFSET = 0xFF00;
 
@@ -103,6 +109,7 @@ class IO_Manager
     std::array<std::array<uint8_t, 0x20>, 0x20> backgroundMap2;
 
     public:
+    bool frameScheduled = true;
     uint64_t cycle = 0;
 
     // Common IO stuff

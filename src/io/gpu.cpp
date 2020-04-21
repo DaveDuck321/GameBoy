@@ -15,24 +15,24 @@ bool IO_Manager::spriteOverridesPixel(int screenX, int screenY, uint8_t &color) 
     {
         // TODO: maybe implement sprite count bug?
         // Check if sprite contains x coord
-        if((attribs[1] > screenX+8) || (attribs[1] <= screenX)) continue;
-        if((attribs[0] > screenY+16) || (attribs[0]+height <= screenY+16)) continue;
+        if((attribs.x > screenX+8) || (attribs.x <= screenX)) continue;
+        if((attribs.y > screenY+16) || (attribs.y+height <= screenY+16)) continue;
 
         // Pixel is definitely in current sprite
         // Get relative tile coord
-        uint8_t tileX = (8 + screenX) - attribs[1];
-        uint8_t tileY = (16 + screenY) - attribs[0];
+        uint8_t tileX = (8 + screenX) - attribs.x;
+        uint8_t tileY = (16 + screenY) - attribs.y;
 
         // Mirror patterns if attrib is set
-        if((attribs[3]&0x20)) tileX = 7-tileX;
-        if((attribs[3]&0x40)) tileY = height-tileY;
+        if((attribs.attribs&0x20)) tileX = 7-tileX;
+        if((attribs.attribs&0x40)) tileY = height-tileY;
 
         // Gets the pattern table index of the current tile
-        uint8_t tileIndex = attribs[2];
+        uint8_t tileIndex = attribs.tile;
         if((memory[LCDC]&0x04))
         {
             // 16px height -- ignore lower bit
-            tileIndex = (attribs[2]&0xFE)+(tileY>7);
+            tileIndex = (attribs.tile&0xFE)+(tileY>7);
         }
 
         // Extract color from tile and color palette
@@ -44,13 +44,13 @@ bool IO_Manager::spriteOverridesPixel(int screenX, int screenY, uint8_t &color) 
         if(colorIndex == 0) continue; // Sprite at this location is transparent
 
         // Select the color palette
-        uint8_t colorPalette = memory[O0_Palette+((attribs[3]&0x10)>>4)];
+        uint8_t colorPalette = memory[O0_Palette+((attribs.attribs&0x10)>>4)];
 
         // Sets color reference and returns
         color = (colorPalette>>(2*colorIndex))&0x03;
 
         // First sprite has draw priority so return immediately
-        return !(attribs[3]&0x80); // Attrib 7 determines forground priority
+        return !(attribs.attribs&0x80); // Attrib 7 determines forground priority
     }
     return false;
 }
