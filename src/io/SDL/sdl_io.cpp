@@ -2,6 +2,10 @@
 
 #include <iostream>
 #include <array>
+#include <string>
+#include <sstream>
+
+using namespace std::chrono;
 
 std::array<std::array<int, 3>, 5> colorsRGB {{
     {{236, 247, 207}},
@@ -23,6 +27,12 @@ SDL_IO::SDL_IO()
     );
     renderer = SDL_CreateRenderer(window, -1, 0);
     SDL_RenderSetScale(renderer, 2.0f, 2.0f);
+
+    lastFrameTime = SDL_GetTicks();
+    lastFPSUpdate = high_resolution_clock::now();
+    lastRenderedFrame = lastFPSUpdate;
+    frameScheduled = true;
+    realtime = true;
 }
 
 SDL_IO::~SDL_IO()
@@ -34,6 +44,32 @@ SDL_IO::~SDL_IO()
 
 void SDL_IO::pollEvents()
 {
+    high_resolution_clock::time_point time = high_resolution_clock::now();
+    if(!realtime)
+    {
+        // In speedup mode, only render to screen @ vsync
+        duration<double> timeSinceRender = time-lastRenderedFrame;
+        //About 60 frames per second
+        frameScheduled = timeSinceRender.count() > 1.0/60.0;
+    }
+
+    //Update FPS every half second
+    duration<double> timeSinceUpdate = time-lastFPSUpdate;
+    if(timeSinceUpdate.count()>0.5)
+    {
+        std::stringstream title;
+        if(lagframe)    title << "Lagging: ";
+
+        double fps = frames/timeSinceUpdate.count();
+        title << "FPS: " << fps;
+        SDL_SetWindowTitle(window, title.str().c_str());
+        // Reset counters
+        frames = 0;
+        lagframe = false;
+        lastFPSUpdate = time;
+    }
+
+    // Keyboard and quit events
     SDL_Event event;
     while(SDL_PollEvent(&event))
     {
@@ -82,9 +118,26 @@ void SDL_IO::pollEvents()
     }
 }
 
-void SDL_IO::finishRender() const
+void SDL_IO::finishRender()
 {
-    SDL_RenderPresent(renderer);
+    frames++;
+    if(realtime)
+    {
+        // Shouldn't render at a higher framerate than the gameboy
+        uint32_t dt = SDL_GetTicks()-lastFrameTime;
+        if(dt <= FRAMETIME) SDL_Delay(FRAMETIME-dt);
+        else                lagframe = true;
+        
+        SDL_RenderPresent(renderer);
+        lastFrameTime = SDL_GetTicks();
+    }
+    else if(frameScheduled)
+    {
+        // Record frame time and render to display
+        frameScheduled = false;
+        lastRenderedFrame = high_resolution_clock::now();
+        SDL_RenderPresent(renderer);
+    }
 }
 
 void SDL_IO::drawPixel(int color, int screenX, int screenY) const

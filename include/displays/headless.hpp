@@ -11,8 +11,8 @@ class Headless: public IO_Manager
     private:
     public:
     std::ostream &os;
-    Headless(std::ostream &os):os(os) {};
-    
+    Headless(std::ostream &os):os(os) { frameScheduled = false; };
+
     void pollEvents() override {};
     void sendSerial(uint8_t value) override { os << value; };
 

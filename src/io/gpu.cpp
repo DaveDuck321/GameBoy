@@ -179,6 +179,7 @@ void IO_Manager::updateLCD()
         return;
     }
     memory[LCD_LY] = vCycleCount/456;
+
     switch(vCycleCount)
     {
         case 0 ... 65663:
@@ -205,7 +206,8 @@ void IO_Manager::updateLCD()
                 if(setLCDStage(0x00, memory[LCD_STAT]&0x08))
                 {
                     // Only attempt draw once per line
-                    drawLine();
+                    // Only draw when frame requested
+                    if(frameScheduled)  drawLine();
                 }
                 break;
             }
@@ -219,11 +221,12 @@ void IO_Manager::updateLCD()
             }
             break;
         default:
-            // VBlank finished... flush screen
+            finishRender(); // VBlank finished... flush screen
+            pollEvents(); // Render started, calculate frameskip, get inputs
+            // Reset registers
+            memory[LCD_LY] = 0;
             vCycleCount = 0;
             windowOffsetY = 0;
-            pollEvents();
-            finishRender();
             break;
     }
 }
