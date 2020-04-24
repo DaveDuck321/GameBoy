@@ -8,6 +8,15 @@ I have not implemented hardware bugs such as the HALT behaviour or the OAM bug s
 
 Consider [Sameboy](https://sameboy.github.io/) for accurate hardware emulation.
 
+## Dependencies
+
+- g++ 7.5+
+- SDL2 (for graphics and input)
+
+Build using `make`. Optionally build for development using: `make debug`.
+
+I have been able to build and run this project in [WSL](https://docs.microsoft.com/en-us/windows/wsl/install-win10) using [VcXsrv](https://sourceforge.net/projects/vcxsrv/) as an X server for graphics. This solution will still perform well; on my machine this can achieve 40x real time emulation.
+
 ## Sound
 
 I have not yet implemented audio emulation, however this project does attempt to emulate the behaviour of the audio registers in order to avoid unexpected behaviour in games that rely on them.
