@@ -169,7 +169,7 @@ void runGame(const char* rom)
 }
 
 
-int main( int argc, const char *argv[] )
+int main(int argc, char *argv[])
 {
     switch (argc)
     {
