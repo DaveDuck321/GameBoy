@@ -2,14 +2,15 @@ CC := g++
 EXEC := a.out
 
 DISPLAY := SDL
-CFLAGS := -O3
+CFLAGS := -std=c++17 -O3
 
 INC_DIR := include
 INC_FLAGS := $(addprefix -I, $(INC_DIR))
 INC_DEPS := $(wildcard $(INC_DIR)/*.hpp) $(wildcard $(INC_DIR)/*/*.hpp)
 
 ifeq ($(DISPLAY), SDL)
-	DISP_Flags := -lSDL2main -lSDL2
+# For windows add '-lmingw32'
+	DISP_Flags := -w -lSDL2main -lSDL2
 endif
 
 BUILD_DIR := build
@@ -27,5 +28,6 @@ $(EXEC): $(OBJS)
 	$(CC) -o $(EXEC) $^ $(CFLAGS) $(DISP_Flags)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp $(INC_DEPS)
+# Remove this and manually add directories for windows instead
 	mkdir -p $(@D)
 	$(CC) $(CFLAGS) -o $@ -c $< $(INC_FLAGS)
