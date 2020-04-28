@@ -5,6 +5,8 @@
 #include <string>
 #include <sstream>
 
+#include <thread>
+
 using namespace std::chrono;
 
 std::array<std::array<int, 3>, 5> colorsRGB {{
@@ -15,6 +17,51 @@ std::array<std::array<int, 3>, 5> colorsRGB {{
     {{255, 0, 0}}
 }};
 
+
+void delayTime(double time)
+{
+    /*
+    Pauses the current thread's execution for 'time' seconds.
+    This is platform dependent: 'SDL_Delay' and 'sleep_for' don't work on Windows.
+    */
+#if defined(WIN32) || defined(_WIN32)
+    // Mingw doesn't support sleep_for ?
+    // Also Windows.h Sleep() takes FAR too long to achieve 60fps
+    // This hacky solution's probably better than dll hell
+    time_point start = high_resolution_clock::now();
+
+    duration<double> elapsed = seconds(0);
+    while(elapsed.count() < time)
+    {
+        elapsed = high_resolution_clock::now() - start;
+    }
+#else
+    // Good efficient code if its supported by the platform
+    std::this_thread::sleep_for(duration<double>(time));
+#endif
+}
+
+double getClockDrift(double testTime)
+{
+    /*
+    Attempts to calculate the time required to call 'sleep_for'.
+    This result can be used to adjust timer
+    */
+#if defined(WIN32) || defined(_WIN32)
+    // Windows has no drift since a loop is used
+    return 0;
+#else
+    // sleep_for function takes a non-negligible amount of time. Measure it
+
+    auto start = high_resolution_clock::now();
+
+    std::this_thread::sleep_for(duration<double>(testTime));
+
+    duration<double> time = high_resolution_clock::now() - start;
+
+    return time.count() - testTime;
+#endif
+}
 
 SDL_IO::SDL_IO()
 {
@@ -28,11 +75,13 @@ SDL_IO::SDL_IO()
     renderer = SDL_CreateRenderer(window, -1, 0);
     SDL_RenderSetScale(renderer, 3.0f, 3.0f);
 
-    lastFrameTime = SDL_GetTicks();
-    lastFPSUpdate = high_resolution_clock::now();
+    lastFrame = high_resolution_clock::now();
+    lastFPSUpdate = lastFrame;
     lastRenderedFrame = lastFPSUpdate;
     frameScheduled = true;
     realtime = true;
+
+    clockDrift = getClockDrift(1.0 / 120.0);
 }
 
 SDL_IO::~SDL_IO()
@@ -130,12 +179,14 @@ void SDL_IO::finishRender()
     if(realtime)
     {
         // Shouldn't render at a higher framerate than the gameboy
-        uint32_t dt = SDL_GetTicks()-lastFrameTime;
-        if(dt <= FRAMETIME) SDL_Delay(FRAMETIME-dt);
+        duration<double> frameDuration = high_resolution_clock::now()-lastFrame;
+        double dt = frameDuration.count() + clockDrift; // Account for clock inaccuracy
+        
+        if(dt <= FRAMETIME) delayTime(FRAMETIME-dt);
         else                lagframe = true;
         
+        lastFrame = high_resolution_clock::now();
         SDL_RenderPresent(renderer);
-        lastFrameTime = SDL_GetTicks();
     }
     else if(frameScheduled)
     {

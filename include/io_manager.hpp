@@ -16,7 +16,7 @@ struct SpriteAttribute
 const uint8_t SCREEN_WIDTH = 160;
 const uint8_t SCREEN_HEIGHT = 144;
 const uint64_t FREQUENCY = 1048576ul; //4.194 MHz
-const uint32_t FRAMETIME = 16ul; //59.7 Hz
+const double FRAMETIME = 1.0/59.7; //59.7 Hz
 
 const uint_fast16_t IO_OFFSET = 0xFF00;
 

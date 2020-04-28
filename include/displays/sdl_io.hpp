@@ -18,7 +18,10 @@ class SDL_IO: public IO_Manager
     bool realtime = true;
     bool lagframe = false;
     uint32_t frames = 0;
-    uint32_t lastFrameTime = 0;
+
+    double clockDrift = 0;
+    //Clock for FPS limiter
+    std::chrono::high_resolution_clock::time_point lastFrame;
     // Clock for FPS update
     std::chrono::high_resolution_clock::time_point lastFPSUpdate;
     // Clock for speed up
