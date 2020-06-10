@@ -13,8 +13,8 @@ struct SpriteAttribute
 };
 
 //General GameBoy info
-const uint8_t SCREEN_WIDTH = 160;
-const uint8_t SCREEN_HEIGHT = 144;
+const uint8_t GB_SCREEN_WIDTH = 160;
+const uint8_t GB_SCREEN_HEIGHT = 144;
 const uint64_t FREQUENCY = 1048576ul; //4.194 MHz
 const double FRAMETIME = 1.0/59.7; //59.7 Hz
 

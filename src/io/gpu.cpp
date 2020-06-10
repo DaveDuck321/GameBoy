@@ -128,7 +128,7 @@ void IO_Manager::drawLine() const
     {
         (*const_cast<uint32_t*>(&windowOffsetY))++;
     }
-    for(int screenX=0; screenX<SCREEN_WIDTH; screenX++)
+    for(int screenX=0; screenX<GB_SCREEN_WIDTH; screenX++)
     {
         uint8_t pixelColor = 0;
         if((memory[LCDC]&0x02) && spriteOverridesPixel(screenX, screenY, pixelColor))

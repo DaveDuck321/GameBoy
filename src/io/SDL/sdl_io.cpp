@@ -69,7 +69,7 @@ SDL_IO::SDL_IO()
     window = SDL_CreateWindow(
         "Gameboy",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        3*SCREEN_WIDTH, 3*SCREEN_HEIGHT,
+        3*GB_SCREEN_WIDTH, 3*GB_SCREEN_HEIGHT,
         SDL_WINDOW_SHOWN
     );
     renderer = SDL_CreateRenderer(window, -1, 0);
