@@ -12,6 +12,7 @@ class Controller
 
     public:
     Controller(const std::vector<uint8_t>& rom): rom(rom) {}
+    virtual ~Controller() = default;
 
     virtual uint8_t read(uint16_t addr) const
     {
