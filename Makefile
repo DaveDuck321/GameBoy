@@ -2,7 +2,7 @@ CC := g++
 EXEC := a.out
 
 DISPLAY := SDL
-CFLAGS := -std=c++17 -O3
+CFLAGS := -std=c++20 -O3 -std=c++20 -Wpedantic -Wall -Wextra 
 
 INC_DIR := include
 INC_FLAGS := $(addprefix -I, $(INC_DIR))
@@ -21,7 +21,7 @@ OBJS := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o)
 
 all: $(EXEC)
 
-debug: CFLAGS := -g -O0 -DDEBUG -Wall
+debug: CFLAGS += -DDEBUG -Wall -fsanitize=address,undefined -g -Og
 debug: $(EXEC)
 
 $(EXEC): $(OBJS)
