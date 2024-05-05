@@ -1,33 +1,58 @@
-CC := g++
+CXX := g++
+AR := ar
 EXEC := a.out
 
 DISPLAY := SDL
-CFLAGS := -std=c++20 -O3 -std=c++20 -Wpedantic -Wall -Wextra 
-
-INC_DIR := include
-INC_FLAGS := $(addprefix -I, $(INC_DIR))
-INC_DEPS := $(wildcard $(INC_DIR)/*.hpp) $(wildcard $(INC_DIR)/*/*.hpp)
-
-ifeq ($(DISPLAY), SDL)
-# For windows add '-lmingw32'
-	DISP_Flags := -w -lSDL2main -lSDL2
-endif
+CXX_FLAGS := -std=gnu++23 -O3 -Wall -Wextra -g
 
 BUILD_DIR := build
-SRC_DIR := src
 
-SRCS := $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/io/*.cpp) $(wildcard $(SRC_DIR)/io/$(DISPLAY)/*.cpp)
-OBJS := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o)
+LIBGB = $(BUILD_DIR)/libgb.a
+LIBGB_SOURCES = $(wildcard libgb/*.cpp) $(wildcard libgb/**/*.cpp)
+LIBGB_OBJ = $(LIBGB_SOURCES:%.cpp=$(BUILD_DIR)/%.o)
+LIBGB_DEP = $(LIBGB_OBJ:%.o=%.d)
 
-all: $(EXEC)
+HEADLESS_TESTS = tests.out
+HEADLESS_TESTS_SOURCES = tests/main.cpp
+HEADLESS_TESTS_OBJ = $(HEADLESS_TESTS_SOURCES:%.cpp=$(BUILD_DIR)/%.o)
+HEADLESS_TESTS_DEP = $(HEADLESS_TESTS_OBJ:%.o=%.d)
 
-debug: CFLAGS += -DDEBUG -Wall -fsanitize=address,undefined -g -Og
-debug: $(EXEC)
+SDL_DISPLAY = gb.out
+SDL_DISPLAY_SOURCES = $(wildcard sdl-frontend/*.cpp)
+SDL_DISPLAY_OBJ = $(SDL_DISPLAY_SOURCES:%.cpp=$(BUILD_DIR)/%.o)
+SDL_DISPLAY_DEP = $(SDL_DISPLAY_OBJ:%.o=%.d)
+SDL_LD_FLAGS = -lSDL2
 
-$(EXEC): $(OBJS)
-	$(CC) -o $(EXEC) $^ $(CFLAGS) $(DISP_Flags)
+.PHONY : all
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp $(INC_DEPS)
-# Remove this and manually add directories for windows instead
-	mkdir -p $(@D)
-	$(CC) $(CFLAGS) -o $@ -c $< $(INC_FLAGS)
+all: $(HEADLESS_TESTS)
+$(HEADLESS_TESTS): $(HEADLESS_TESTS_OBJ) $(LIBGB)
+	$(CXX) $(CXX_FLAGS) $^ -o $@
+
+all: $(SDL_DISPLAY)
+$(SDL_DISPLAY): $(SDL_DISPLAY_OBJ) $(LIBGB)
+	$(CXX) $(CXX_FLAGS) $(SDL_LD_FLAGS) $^ -o $@
+
+$(LIBGB): $(LIBGB_OBJ)
+	$(AR) -crs $(LIBGB) $^
+
+-include $(LIBGB_DEP)
+-include $(HEADLESS_TESTS_DEP)
+-include $(SDL_DISPLAY_DEP)
+
+$(BUILD_DIR)/libgb/%.o : libgb/%.cpp
+	@mkdir -p $(@D)
+	$(CXX) $(CXX_FLAGS) -MMD -Ilibgb -c $< -o $@
+
+$(BUILD_DIR)/%.o : %.cpp
+	@mkdir -p $(@D)
+	$(CXX) $(CXX_FLAGS) -MMD -I. -c $< -o $@
+
+.PHONY : tests
+tests: $(HEADLESS_TESTS)
+
+.PHONY : clean
+clean:
+	-rm $(LIBGB_OBJ) $(LIBGB_DEP) $(LIBGB)\
+		$(HEADLESS_TESTS_DEP) $(HEADLESS_TESTS_OBJ) $(HEADLESS_TESTS)\
+		$(SDL_DISPLAY_DEP) $(SDL_DISPLAY_OBJ) $(SDL_DISPLAY) 2> /dev/null
