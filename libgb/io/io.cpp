@@ -1,7 +1,9 @@
 #include "io.hpp"
 
+#include "../error_handling.hpp"
+
 #include <cstdint>
-#include <iostream>
+#include <format>
 #include <utility>
 
 using namespace gb;
@@ -57,7 +59,8 @@ auto IO::ioRead(uint16_t addr) -> uint8_t {
       // DMA - DMA Transfer and Start Address (W)
       // DMA reads are never allowed
       // There's probably an error somewhere else so throw
-      throw std::runtime_error("DMA read not permitted!");
+      throw IllegalMemoryRead(
+          std::format("DMA read (@ {:#06x}) not permitted!", addr));
 
     // Sound
     case 0xFF10:

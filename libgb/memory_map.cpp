@@ -1,9 +1,11 @@
 #include "memory_map.hpp"
 
 #include "cartridge.hpp"
+#include "error_handling.hpp"
 #include "io/io.hpp"
 
 #include <cstdint>
+#include <format>
 
 using namespace gb;
 
@@ -81,7 +83,8 @@ auto MemoryMap::read(uint16_t addr) const -> uint8_t {
       return io->videoRead(addr);
     case 0xFEA0 ... 0xFEFF:
       // Not Usable
-      throw std::runtime_error("Bad ram address");
+      throw IllegalMemoryRead(
+          std::format("Unusable ram address {:#06x}", addr));
     case 0xFF00 ... 0xFF7F:
       // IO ports
       return io->ioRead(addr);
@@ -92,7 +95,7 @@ auto MemoryMap::read(uint16_t addr) const -> uint8_t {
       // Interrupts enabled Register
       return stack[0x7F];
     default:
-      throw std::range_error("Impossible memory address");
+      throw IllegalMemoryRead(std::format("Bad ram address {:#06x}", addr));
   }
 }
 

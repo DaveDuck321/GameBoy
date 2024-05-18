@@ -1,7 +1,10 @@
 #include "controller.hpp"
 
+#include "../error_handling.hpp"
+
 #include <array>
 #include <cstdint>
+#include <format>
 #include <memory>
 #include <span>
 
@@ -49,7 +52,8 @@ class MBC1 : public Controller {
         return ram.at((0x2000 * ramBank) + bankOffset);
       }
       default:
-        throw std::runtime_error("Cannot read ROM address");
+        throw IllegalMemoryRead(
+            std::format("Cannot read ROM address {:#04x}", addr));
     }
   }
 

@@ -32,6 +32,7 @@ class GB {
   [[nodiscard]] auto readU8(uint16_t addr) const -> uint8_t;
   [[nodiscard]] auto readU16(uint16_t addr) const -> uint16_t;
 
+  [[nodiscard]] auto getRegisters() -> CPURegisters&;
   auto isSimulationFinished() -> bool;
   auto clock() -> void;
 

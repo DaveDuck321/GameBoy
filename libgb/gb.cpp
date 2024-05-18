@@ -23,6 +23,10 @@ auto GB::readU16(uint16_t addr) const -> uint16_t {
   return (upper << 8U) + lower;
 }
 
+auto GB::getRegisters() -> CPURegisters& {
+  return cpu.getRegisters();
+}
+
 auto GB::isSimulationFinished() -> bool {
   return io.isSimulationFinished();
 }

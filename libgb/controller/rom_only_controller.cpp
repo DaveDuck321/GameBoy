@@ -14,7 +14,10 @@ class RomOnlyController : public Controller {
   explicit RomOnlyController(std::span<uint8_t> rom) : rom{rom} {}
 
   [[nodiscard]] auto read(uint16_t addr) const -> uint8_t final {
-    return rom[addr];
+    if (addr < rom.size()) {
+      return rom[addr];
+    }
+    return 0;  // Implicit zero pad
   }
 
   auto write(uint16_t addr, uint8_t value) -> void final {

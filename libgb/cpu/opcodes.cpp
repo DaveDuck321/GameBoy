@@ -1,8 +1,10 @@
 #include "cpu.hpp"
 
+#include "../error_handling.hpp"
+
 #include <array>
 #include <cstdint>
-#include <iostream>
+#include <format>
 
 using namespace gb;
 
@@ -362,7 +364,8 @@ auto CPU::processNextInstruction() -> void {
           SET_b_r((arg - 0xC0U) >> 3U, registerOpcodes[arg % 0x08]);
           break;
         default:
-          throw std::runtime_error("0xCB bad arg");
+          throw BadOpcode(
+              std::format("Bad opcode {:#02x}{:#02x}", opcode, arg));
       }
       break;
     }
@@ -472,9 +475,6 @@ auto CPU::processNextInstruction() -> void {
       break;
 
     default:
-      std::cerr << "Bad operation" << static_cast<unsigned int>(opcode)
-                << std::endl;
-      throw std::runtime_error("Bad opcode");
-      break;
+      throw BadOpcode(std::format("Bad opcode {:#04x}", opcode));
   }
 }

@@ -50,7 +50,7 @@ class CPU {
   auto clock() -> void;
 
   // Debug
-  auto printFlags() -> void;
+  auto getRegisters() -> CPURegisters&;
   auto insertInterruptOnNextCycle(uint8_t id) -> void;
 
  private:

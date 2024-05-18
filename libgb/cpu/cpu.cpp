@@ -95,3 +95,7 @@ auto CPU::clock() -> void {
   registers.IME[0] = registers.IME[1];
   registers.IME[1] = registers.IME[2];
 }
+
+auto CPU::getRegisters() -> CPURegisters& {
+  return registers;
+}
