@@ -54,6 +54,8 @@ SDLFrontend::SDLFrontend()
                             3 * gb::SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
   renderer = SDL_CreateRenderer(window, -1, 0);
   SDL_RenderSetScale(renderer, 3.0F, 3.0F);
+  SDL_RenderClear(renderer);
+  SDL_RenderPresent(renderer);
 }
 
 SDLFrontend::~SDLFrontend() {

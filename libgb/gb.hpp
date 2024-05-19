@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string_view>
 
 // http://bgb.bircd.org/pandocs.htm
@@ -39,4 +40,12 @@ class GB {
   // Debug
   auto insertInterruptOnNextCycle(uint8_t id) -> void;
 };
+
+auto run_standalone(std::unique_ptr<gb::IOFrontend>, std::string_view rom_path)
+    -> void;
+
+auto run_gdb_server(uint16_t port,
+                    std::unique_ptr<gb::IOFrontend>,
+                    std::optional<std::string_view> rom_path) -> void;
+
 }  // namespace gb

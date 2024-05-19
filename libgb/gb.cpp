@@ -43,3 +43,11 @@ auto GB::clock() -> void {
 auto GB::insertInterruptOnNextCycle(uint8_t) -> void {
   // TODO
 }
+
+auto gb::run_standalone(std::unique_ptr<gb::IOFrontend> frontend,
+                        std::string_view rom_path) -> void {
+  auto gb = std::make_unique<gb::GB>(rom_path, std::move(frontend));
+  while (not gb->isSimulationFinished()) {
+    gb->clock();
+  }
+}
