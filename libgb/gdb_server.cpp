@@ -112,17 +112,37 @@ void gb::run_gdb_server(uint16_t port,
   // Start listening for connection
   server.wait_for_connection(port);
 
+  // Wait for gdb to load a rom
+  while (gb == nullptr) {
+    server.process_next_request();
+  }
+
   // Mainloop
   while (not gb->isSimulationFinished()) {
     if (is_halted) {
       server.process_next_request();
     } else {
-      gb->clock();
-
-      if (server.has_remote_interrupt_request() ||
-          server.is_active_breakpoint(gb->getRegisters().r16.pc)) {
+      try {
+        // PC isn't guaranteed to advance if waiting for an interrupt
+        auto start_pc = gb->getRegisters().r16.pc;
+        while (gb->getRegisters().r16.pc == start_pc) {
+          gb->clock();
+        }
+      } catch (const BadOpcode&) {
         is_halted = true;
-        server.notify_break();
+        server.notify_break(/*is_breakpoint=*/false);
+        continue;
+      }
+
+      if (server.has_remote_interrupt_request()) {
+        is_halted = true;
+        server.notify_break(/*is_breakpoint=*/false);
+        continue;
+      }
+
+      if (server.is_active_breakpoint(gb->getRegisters().r16.pc)) {
+        is_halted = true;
+        server.notify_break(/*is_breakpoint=*/true);
       }
     }
   }

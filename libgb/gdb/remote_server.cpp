@@ -420,7 +420,8 @@ auto RemoteServer::process_next_request() -> void {
   if (request.size() == 1 && request[0] == '\x03') {
     std::cout << "-> ^C" << std::endl;
   } else {
-    std::cout << "-> Unrecognized interrupt: " << encode_as_hex(request)
+    std::cout << std::format("-> Unrecognized interrupt: ascii: {}, bytes: {}",
+                             request, encode_as_hex(request))
               << std::endl;
   }
   return true;
@@ -430,11 +431,16 @@ auto RemoteServer::is_active_breakpoint(size_t addr) const -> bool {
   return m_is_in_step || m_breakpoints.find(addr) != m_breakpoints.end();
 }
 
-auto RemoteServer::notify_break() -> void {
+auto RemoteServer::notify_break(bool is_breakpoint) -> void {
+  bool did_stop_due_to_step = m_is_in_step;
   m_is_in_step = false;  // Consume step
 
   std::stringstream ss;
-  ss << "T02";  // SIGINT
+  if (is_breakpoint) {
+    ss << "T02";  // SIGINT
+  } else {
+    ss << "T05";  // SIGTRAP
+  }
 
   // Append register information
   for (size_t register_number = 0;; register_number++) {
@@ -446,6 +452,14 @@ auto RemoteServer::notify_break() -> void {
     ss << std::hex << register_number << ":"
        << encode_as_hex((uint16_t)value.value()) << ";";
   }
-  ss << "reason:breakpoint;";
+  if (is_breakpoint) {
+    if (did_stop_due_to_step) {
+      ss << "reason:trace;";
+    } else {
+      ss << "reason:breakpoint;";
+    }
+  } else {
+    ss << "reason:trap;";
+  }
   send_response(ss.str());
 }

@@ -56,7 +56,7 @@ class RemoteServer {
   [[nodiscard]] auto has_remote_interrupt_request() const -> bool;
 
   [[nodiscard]] auto is_active_breakpoint(size_t addr) const -> bool;
-  auto notify_break() -> void;
+  auto notify_break(bool is_breakpoint) -> void;
 
   template <typename Fn>
   auto add_read_register_value_callback(Fn&& fn) -> void {
