@@ -187,10 +187,8 @@ auto GPU::updateLCD(IOFrontend& frontend) -> bool {
       }
       break;
     default:
-      if (frontend.isFrameScheduled()) {
-        // VBlank finished... flush screen
-        frontend.commitRender();
-      }
+      // VBlank finished... flush screen
+      frontend.commitRender();
       // Reset registers
       io_memory[LCD_LY] = 0;
       vCycleCount = 0;

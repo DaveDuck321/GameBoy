@@ -25,13 +25,17 @@ class SDLFrontend : public gb::IOFrontend {
 
   std::mutex m_render_mutex;
   std::condition_variable m_render_buffer_ready;
+
   uint32_t* m_data_to_render = nullptr;
   int m_render_stride = 0;
+  bool m_current_frame_is_visible = true;
 
   // Inputs
   std::mutex m_keypress_mutex;
   std::queue<gb::Key> m_key_events;
   bool m_last_keypress_was_down = false;
+
+  std::atomic<bool> m_speed_up_mode = false;
   std::atomic<bool> m_exit_requested = false;
 
   // Diagnostics

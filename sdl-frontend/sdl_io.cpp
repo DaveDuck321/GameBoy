@@ -104,6 +104,10 @@ auto SDLFrontend::process_events() -> void {
     gb::Key& top_key = m_key_events.back();
     switch (event.type) {
       case SDL_KEYDOWN: {
+        if (event.key.keysym.sym == SDLK_s) {
+          m_speed_up_mode.store(true, std::memory_order_relaxed);
+        }
+
         const auto pressed = map_to_GB_key(event.key.keysym.sym);
         if (m_last_keypress_was_down) {
           top_key = gb::Key(std::to_underlying(top_key) |
@@ -115,6 +119,10 @@ auto SDLFrontend::process_events() -> void {
         break;
       }
       case SDL_KEYUP: {
+        if (event.key.keysym.sym == SDLK_s) {
+          m_speed_up_mode.store(false, std::memory_order_relaxed);
+        }
+
         const auto pressed = map_to_GB_key(event.key.keysym.sym);
         if (not m_last_keypress_was_down) {
           top_key = gb::Key(std::to_underlying(top_key) &
@@ -198,13 +206,29 @@ auto SDLFrontend::addPixel(int color, int screenX, int screenY) -> void {
 auto SDLFrontend::commitRender() -> void {
   m_gb_frame_count += 1;
 
-  m_data_to_render = nullptr;
+  if (not m_speed_up_mode.load(std::memory_order_relaxed)) {
+    m_current_frame_is_visible = true;
+    m_data_to_render = nullptr;
+    std::unique_lock lock{m_render_mutex};
+    m_render_buffer_ready.wait(lock,
+                               [&] { return m_data_to_render != nullptr; });
+    return;
+  }
+
+  // speedup mode does not wait for a fresh frame buffer
   std::unique_lock lock{m_render_mutex};
-  m_render_buffer_ready.wait(lock, [&] { return m_data_to_render != nullptr; });
+  if (m_current_frame_is_visible) {
+    // We've just rendered a frame, don't block -- skip next frame
+    m_data_to_render = nullptr;
+    m_current_frame_is_visible = false;
+  } else {
+    // We've just skipped a frame, check if we've got a frame buffer
+    m_current_frame_is_visible = m_data_to_render != nullptr;
+  }
 }
 
 auto SDLFrontend::isFrameScheduled() -> bool {
-  return true;
+  return m_current_frame_is_visible;
 }
 
 auto SDLFrontend::isExitRequested() -> bool {
