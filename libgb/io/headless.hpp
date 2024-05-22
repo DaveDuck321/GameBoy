@@ -17,7 +17,7 @@ class Headless : public IOFrontend {
 
   auto getKeyPressState() -> Key override { return Key::NONE; };
   auto sendSerial(uint8_t value) -> void override { *os << std::hex << value; };
-  auto addPixel(int, int, int) const -> void override{};
+  auto addPixel(int, int, int) -> void override{};
   auto commitRender() -> void override{};
   auto isFrameScheduled() -> bool override { return false; };
   auto isExitRequested() -> bool override { return false; };

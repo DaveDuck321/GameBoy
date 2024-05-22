@@ -12,7 +12,7 @@ class IOFrontend {
 
   virtual auto getKeyPressState() -> Key = 0;
   virtual auto sendSerial(uint8_t value) -> void = 0;
-  virtual auto addPixel(int color, int screenX, int screenY) const -> void = 0;
+  virtual auto addPixel(int color, int screenX, int screenY) -> void = 0;
   virtual auto commitRender() -> void{};
   virtual auto isFrameScheduled() -> bool = 0;
   virtual auto isExitRequested() -> bool = 0;
