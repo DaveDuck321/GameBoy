@@ -15,7 +15,9 @@
 #include <queue>
 
 class SDLFrontend : public gb::IOFrontend {
-  // -- SDL rendering state
+  std::thread m_render_thread;
+
+  // Rendering
   SDL_Window* m_window = nullptr;
   SDL_Renderer* m_renderer = nullptr;
   size_t m_live_texture = 0;
@@ -26,14 +28,16 @@ class SDLFrontend : public gb::IOFrontend {
   uint32_t* m_data_to_render = nullptr;
   int m_render_stride = 0;
 
-  std::thread m_render_thread;
-  // -- End SDL rendering state
-
-  // Never drop a keypress, record everything
+  // Inputs
   std::mutex m_keypress_mutex;
   std::queue<gb::Key> m_key_events;
   bool m_last_keypress_was_down = false;
   std::atomic<bool> m_exit_requested = false;
+
+  // Diagnostics
+  size_t m_gb_frame_count = 0;
+  size_t m_real_frame_count = 0;
+  size_t m_last_lag_frame = 0;
 
  public:
   SDLFrontend();

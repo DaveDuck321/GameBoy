@@ -5,8 +5,10 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_pixels.h>
 #include <SDL2/SDL_render.h>
+#include <SDL2/SDL_video.h>
 
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <iostream>
 #include <mutex>
@@ -136,7 +138,7 @@ auto SDLFrontend::draw_frame() -> void {
   {
     std::mutex m_render_mutex;
     if (m_data_to_render == nullptr) {
-      // The GB has filled the inactive texture, lock and swap
+      // The emulator has filled the inactive texture, lock and swap
       SDL_LockTexture(m_textures[m_live_texture], nullptr,
                       (void**)&m_data_to_render, &m_render_stride);
 
@@ -146,8 +148,21 @@ auto SDLFrontend::draw_frame() -> void {
 
       m_live_texture = (m_live_texture + 1) % 2;
       SDL_UnlockTexture(m_textures[m_live_texture]);
+    } else {
+      m_render_mutex.unlock();
+
+      // The emulator hasn't finished preparing our next frame
+      SDL_SetWindowTitle(m_window, "Emulator lagging render");
+      m_last_lag_frame = m_real_frame_count;
     }
   }
+
+  if (m_real_frame_count - m_last_lag_frame == 60) {
+    // Hide lag frame message after 1s
+    SDL_SetWindowTitle(m_window, "Running");
+  }
+
+  m_real_frame_count += 1;
 
   SDL_RenderClear(m_renderer);
   SDL_RenderCopy(m_renderer, m_textures[m_live_texture], nullptr, nullptr);
@@ -181,6 +196,8 @@ auto SDLFrontend::addPixel(int color, int screenX, int screenY) -> void {
 }
 
 auto SDLFrontend::commitRender() -> void {
+  m_gb_frame_count += 1;
+
   m_data_to_render = nullptr;
   std::unique_lock lock{m_render_mutex};
   m_render_buffer_ready.wait(lock, [&] { return m_data_to_render != nullptr; });
@@ -191,5 +208,5 @@ auto SDLFrontend::isFrameScheduled() -> bool {
 }
 
 auto SDLFrontend::isExitRequested() -> bool {
-  return m_exit_requested;
+  return m_exit_requested.load(std::memory_order_relaxed);
 }
