@@ -3,7 +3,9 @@
 #include "../utils/checked_int.hpp"
 #include "registers.hpp"
 
+#include <algorithm>
 #include <cstdint>
+#include <format>
 
 using namespace gb;
 
@@ -13,11 +15,11 @@ auto CPU::reset() -> void {
   registers = CPURegisters{};
 }
 
-auto CPU::readU8(uint16_t addr) -> Byte {
+auto CPU::readU8(uint16_t addr, bool allow_undef) -> Byte {
   // Reads an 8-Bit value from 'addr'
   io->cycle++;  // Under normal circumstances a read takes 1 cycle
   Byte result = memory_map->read(addr);
-  if (result.flags.undefined) {
+  if (not allow_undef && result.flags.undefined) {
     throw UndefinedDataError("Read returned undefined memory");
   }
   return result;
@@ -25,7 +27,8 @@ auto CPU::readU8(uint16_t addr) -> Byte {
 
 auto CPU::readU16(uint16_t addr, bool allow_partial_undef) -> Word {
   // Reads a 16-Bit LE value from 'addr'
-  Word result = {readU8(addr + 1), readU8(addr)};
+  Word result = {readU8(addr + 1, allow_partial_undef),
+                 readU8(addr, allow_partial_undef)};
   if (allow_partial_undef) {
     if (result.low_undefined && result.high_undefined) {
       throw UndefinedDataError("Read returned undefined memory");
@@ -38,11 +41,17 @@ auto CPU::readU16(uint16_t addr, bool allow_partial_undef) -> Word {
   return result;
 }
 
-auto CPU::writeU8(uint16_t addr, Byte value) -> void {
+auto CPU::writeU8(uint16_t addr, Byte value, bool allow_undef) -> void {
   // Writes an 8-Bit value to 'addr'
   io->cycle++;  // Under normal circumstances a write takes 1 cycle
-  if (value.flags.undefined) {
+  if (not allow_undef && value.flags.undefined) {
     throw UndefinedDataError("Attempting to write undefined into memory");
+  }
+  if (std::ranges::contains(return_address_pointers, addr)) {
+    throw ClobberedReturnAddressError(std::format(
+        "Attempting to clobber a stack address corresponding to the return "
+        "pointer @ {:#06x}",
+        addr));
   }
   memory_map->write(addr, value);
 }
@@ -59,8 +68,8 @@ auto CPU::writeU16(uint16_t addr, Word value, bool allow_partial_undef)
       throw UndefinedDataError("Attempting to write undefined into memory");
     }
   }
-  writeU8(addr, value.lower());
-  writeU8(addr + 1, value.upper());
+  writeU8(addr, value.lower(), allow_partial_undef);
+  writeU8(addr + 1, value.upper(), allow_partial_undef);
 }
 
 auto CPU::advancePC1Byte() -> uint8_t {

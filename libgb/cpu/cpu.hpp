@@ -41,6 +41,8 @@ class CPU {
 
   // State required for control flow sanitation
   std::optional<uint16_t> current_tos = 0;
+  // Since there are no alignment guarantees, this array contains both lower and
+  // upper pointers.
   std::vector<uint16_t> return_address_pointers = {};
   std::vector<uint16_t> expected_return_addresses = {};
 
@@ -53,11 +55,11 @@ class CPU {
   auto reset() -> void;
 
   // Reads cannot be const since they consume 1 cycle
-  [[nodiscard]] auto readU8(uint16_t addr) -> Byte;
+  [[nodiscard]] auto readU8(uint16_t addr, bool allow_undef = false) -> Byte;
   [[nodiscard]] auto readU16(uint16_t addr, bool allow_partial_undef = false)
       -> Word;
 
-  auto writeU8(uint16_t addr, Byte value) -> void;
+  auto writeU8(uint16_t addr, Byte value, bool allow_undef = false) -> void;
   auto writeU16(uint16_t addr, Word value, bool allow_partial_undef = false)
       -> void;
 

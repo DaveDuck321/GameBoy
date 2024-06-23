@@ -1115,6 +1115,7 @@ void CPU::CALL_nn(uint16_t nn) {
 
   // NOTE: the stack pointer points to return addr with no offset
   expected_return_addresses.push_back(registers.pc);
+  return_address_pointers.push_back(registers.sp + 1);
   return_address_pointers.push_back(registers.sp);
 
   // Don't call JP_nn, the jump should take 0 cycles
@@ -1161,6 +1162,8 @@ void CPU::RET() {
   };
 
   uint16_t expected_sp = pop_back(return_address_pointers);
+  assert(pop_back(return_address_pointers) == expected_sp + 1);
+
   uint16_t expected_addr = pop_back(expected_return_addresses);
   uint16_t actual_addr = readU16(registers.sp).decay();
 
