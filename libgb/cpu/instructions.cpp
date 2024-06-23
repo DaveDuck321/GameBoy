@@ -301,10 +301,9 @@ void CPU::PUSH(Register r) {
   Use with:
       nn = AF,BC,DE,HL
   */
-  // TODO: check order
   io->cycle++;  // PUSH takes extra cycle -- 16-Bit read?
   registers.sp -= 2;
-  writeU16(registers.sp, getRegU16(r));
+  writeU16(registers.sp, getRegU16(r), /*allow_partial_undef=*/true);
 }
 
 void CPU::POP(Register r) {
@@ -315,13 +314,11 @@ void CPU::POP(Register r) {
   Use with:
       nn = AF,BC,DE,HL
   */
-  // TODO: check order
-  setRegU16(r, readU16(registers.sp));
+  setRegU16(r, readU16(registers.sp, /*allow_partial_undef=*/true));
   registers.sp += 2;
 }
 
 void CPU::ADD_n(Byte n, bool carry) {
-  // TODO: guessed C flag operation, might be wrong
   /*
   Description:
       Add n + Carry flag to A.
@@ -361,7 +358,6 @@ void CPU::ADC_n(Byte n) {
 }
 
 void CPU::SUB_n(Byte n, bool carry) {
-  // TODO: guessed C flag operation, might be wrong
   /*
   Description:
       Subtract n from A.

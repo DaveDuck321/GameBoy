@@ -17,22 +17,49 @@ auto CPU::reset() -> void {
 auto CPU::readU8(uint16_t addr) -> Byte {
   // Reads an 8-Bit value from 'addr'
   io->cycle++;  // Under normal circumstances a read takes 1 cycle
-  return memory_map->read(addr);
+  Byte result = memory_map->read(addr);
+  if (result.flags.undefined) {
+    throw UndefinedDataError("Read returned undefined memory");
+  }
+  return result;
 }
 
-auto CPU::readU16(uint16_t addr) -> Word {
+auto CPU::readU16(uint16_t addr, bool allow_partial_undef) -> Word {
   // Reads a 16-Bit LE value from 'addr'
-  return {readU8(addr + 1), readU8(addr)};
+  Word result = {readU8(addr + 1), readU8(addr)};
+  if (allow_partial_undef) {
+    if (result.low_undefined && result.high_undefined) {
+      throw UndefinedDataError("Read returned undefined memory");
+    }
+  } else {
+    if (result.flags.undefined) {
+      throw UndefinedDataError("Read returned undefined memory");
+    }
+  }
+  return result;
 }
 
 auto CPU::writeU8(uint16_t addr, Byte value) -> void {
   // Writes an 8-Bit value to 'addr'
   io->cycle++;  // Under normal circumstances a write takes 1 cycle
+  if (value.flags.undefined) {
+    throw UndefinedDataError("Attempting to write undefined into memory");
+  }
   memory_map->write(addr, value);
 }
 
-auto CPU::writeU16(uint16_t addr, Word value) -> void {
+auto CPU::writeU16(uint16_t addr, Word value, bool allow_partial_undef)
+    -> void {
   // Writes a 16-Bit LE value to 'addr'
+  if (allow_partial_undef) {
+    if (value.low_undefined && value.high_undefined) {
+      throw UndefinedDataError("Attempting to write undefined into memory");
+    }
+  } else {
+    if (value.flags.undefined) {
+      throw UndefinedDataError("Attempting to write undefined into memory");
+    }
+  }
   writeU8(addr, value.lower());
   writeU8(addr + 1, value.upper());
 }

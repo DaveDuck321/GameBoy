@@ -46,10 +46,10 @@ class CPU {
 
   // Reads cannot be const since they consume 1 cycle
   [[nodiscard]] auto readU8(uint16_t addr) -> Byte;
-  [[nodiscard]] auto readU16(uint16_t addr) -> Word;
+  [[nodiscard]] auto readU16(uint16_t addr, bool allow_partial_undef = false) -> Word;
 
   auto writeU8(uint16_t addr, Byte value) -> void;
-  auto writeU16(uint16_t addr, Word value) -> void;
+  auto writeU16(uint16_t addr, Word value, bool allow_partial_undef = false) -> void;
 
   auto clock() -> void;
 
