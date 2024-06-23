@@ -3,6 +3,7 @@
 #include "cpu.hpp"
 #include "registers.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <stdexcept>
@@ -1111,6 +1112,11 @@ void CPU::CALL_nn(uint16_t nn) {
       nn = two byte immediate value. (LS byte first.)
   */
   PUSH(Register::PC);
+
+  // NOTE: the stack pointer points to return addr with no offset
+  expected_return_addresses.push_back(registers.pc);
+  return_address_pointers.push_back(registers.sp);
+
   // Don't call JP_nn, the jump should take 0 cycles
   registers.pc = nn;
 }
@@ -1139,9 +1145,7 @@ void CPU::RST_n(uint8_t n) {
   Use with:
       n = $00,$08,$10,$18,$20,$28,$30,$38
   */
-  PUSH(Register::PC);
-  // Don't call JP_nn, the jump should take 0 cycles
-  registers.pc = n;
+  CALL_nn(n);
 }
 
 void CPU::RET() {
@@ -1149,9 +1153,31 @@ void CPU::RET() {
   Description:
       Pop two bytes from stack & jump to that address
   */
-  Word addr = readU16(registers.sp);
+
+  auto pop_back = []<typename T>(std::vector<T>& vec) -> T {
+    auto result = vec.back();
+    vec.pop_back();
+    return result;
+  };
+
+  uint16_t expected_sp = pop_back(return_address_pointers);
+  uint16_t expected_addr = pop_back(expected_return_addresses);
+  uint16_t actual_addr = readU16(registers.sp).decay();
+
+  if (expected_sp != registers.sp) {
+    throw CallFrameViolationError(
+        "Returning from a stack pointer that does not correspond to the last "
+        "call instruction.");
+  }
+
+  if (expected_addr != actual_addr) {
+    throw ClobberedReturnAddressError(
+        "Returning from the correct stack pointer but the value has been "
+        "clobbered since the last call.");
+  }
+
   registers.sp += 2;
-  JP_nn(addr.decay());
+  JP_nn(actual_addr);
 }
 
 void CPU::RET_cc(Flag f, bool set) {

@@ -4,7 +4,6 @@
 #include "registers.hpp"
 
 #include <cstdint>
-#include <iostream>
 
 using namespace gb;
 
@@ -127,8 +126,15 @@ auto CPU::clock() -> void {
   processNextInstruction();
   registers.IME[0] = registers.IME[1];
   registers.IME[1] = registers.IME[2];
+
+  // Instruction was successful, commit registers for easier debugging
+  comitted_registers = registers;
 }
 
-auto CPU::getRegisters() -> CPURegisters& {
+auto CPU::getCurrentRegisters() -> CPURegisters& {
   return registers;
+}
+
+auto CPU::getDebugRegisters() -> CPURegisters& {
+  return comitted_registers;
 }

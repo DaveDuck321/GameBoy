@@ -30,4 +30,14 @@ class UndefinedDataError : public CorrectnessError {
   using CorrectnessError::CorrectnessError;
 };
 
+class CallFrameViolationError : public CorrectnessError {
+ public:
+  using CorrectnessError::CorrectnessError;
+};
+
+class ClobberedReturnAddressError : public CorrectnessError {
+ public:
+  using CorrectnessError::CorrectnessError;
+};
+
 }  // namespace gb

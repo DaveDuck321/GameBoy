@@ -33,7 +33,9 @@ class GB {
   [[nodiscard]] auto readU8(uint16_t addr) const -> Byte;
   [[nodiscard]] auto readU16(uint16_t addr) const -> Word;
 
-  [[nodiscard]] auto getRegisters() -> CPURegisters&;
+  [[nodiscard]] auto getCurrentRegisters() -> CPURegisters&;
+  [[nodiscard]] auto getDebugRegisters() -> CPURegisters&;
+
   auto isSimulationFinished() -> bool;
   auto reset() -> void;
   auto clock() -> void;

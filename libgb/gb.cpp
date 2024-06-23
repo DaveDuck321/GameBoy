@@ -21,8 +21,12 @@ auto GB::readU16(uint16_t addr) const -> Word {
   return {memory_map.read(addr + 1), memory_map.read(addr)};
 }
 
-auto GB::getRegisters() -> CPURegisters& {
-  return cpu.getRegisters();
+auto GB::getCurrentRegisters() -> CPURegisters& {
+  return cpu.getCurrentRegisters();
+}
+
+auto GB::getDebugRegisters() -> CPURegisters& {
+  return cpu.getDebugRegisters();
 }
 
 auto GB::isSimulationFinished() -> bool {

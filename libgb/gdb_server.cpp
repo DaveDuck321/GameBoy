@@ -83,7 +83,7 @@ void gb::run_gdb_server(uint16_t port,
         if (regno > 5) {
           return std::nullopt;
         }
-        return gb->getRegisters().getU16(gb::Reg16(regno)).decay_or(0xde);
+        return gb->getDebugRegisters().getU16(gb::Reg16(regno)).decay_or(0xde);
       });
 
   server.add_run_elf_callback([&](std::string_view elf) {
@@ -105,7 +105,7 @@ void gb::run_gdb_server(uint16_t port,
   server.add_is_attached_callback([&] { return gb != nullptr; });
   server.add_do_continue_callback([&](std::optional<size_t> addr) {
     if (addr.has_value()) {
-      gb->getRegisters().pc = addr.value();
+      gb->getCurrentRegisters().pc = addr.value();
     }
     is_halted = false;
   });
@@ -130,8 +130,8 @@ void gb::run_gdb_server(uint16_t port,
     } else {
       try {
         // PC isn't guaranteed to advance if waiting for an interrupt
-        auto start_pc = gb->getRegisters().pc;
-        while (gb->getRegisters().pc == start_pc) {
+        auto start_pc = gb->getCurrentRegisters().pc;
+        while (gb->getCurrentRegisters().pc == start_pc) {
           gb->clock();
         }
       } catch (const BadOpcode&) {
@@ -155,7 +155,7 @@ void gb::run_gdb_server(uint16_t port,
         continue;
       }
 
-      if (server.is_active_breakpoint(gb->getRegisters().pc)) {
+      if (server.is_active_breakpoint(gb->getCurrentRegisters().pc)) {
         is_halted = true;
         server.notify_break(gdb::RemoteServer::BreakReason::SIGINT,
                             /*is_breakpoint=*/true);
