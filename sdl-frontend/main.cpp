@@ -1,4 +1,5 @@
 #include "../libgb/gb.hpp"
+#include "../libgb/io/headless.hpp"
 
 #include "sdl_io.hpp"
 
@@ -17,6 +18,14 @@ auto main(int argc, char** argv) -> int {
   // Extract + validate arguments
   std::optional<uint16_t> port;
   std::optional<std::string_view> rom;
+  bool is_gui = false;
+
+  // Headless is a flag
+  if (auto gui_flag = std::ranges::find(args, std::string_view{"--gui"});
+      gui_flag != args.end()) {
+    is_gui = true;
+    args.erase(gui_flag);
+  }
 
   // Listen is named and implies gdb server mode
   if (auto listen_flag = std::ranges::find(args, std::string_view{"--listen"});
@@ -38,13 +47,21 @@ auto main(int argc, char** argv) -> int {
         std::format("Argument error: unrecognized argument '{}'", args[0]));
   }
 
+  // Initialize the gui
+  std::unique_ptr<gb::IOFrontend> frontend;
+  if (is_gui) {
+    frontend = std::make_unique<SDLFrontend>();
+  } else {
+    frontend = std::make_unique<gb::Headless>(std::cout);
+  }
+
   // Run
   if (port.has_value()) {
-    gb::run_gdb_server(*port, std::make_unique<SDLFrontend>(), rom);
+    gb::run_gdb_server(*port, std::move(frontend), rom);
   } else {
     if (not rom.has_value()) {
       throw std::runtime_error("Argument error: missing position argument ROM");
     }
-    gb::run_standalone(std::make_unique<SDLFrontend>(), *rom);
+    gb::run_standalone(std::move(frontend), *rom);
   }
 }
