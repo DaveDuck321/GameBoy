@@ -32,6 +32,15 @@ constexpr uint_fast16_t NR52_REG = 0xFF26 - IO_OFFSET;
 constexpr uint_fast16_t SERIAL_DATA = 0xFF01 - IO_OFFSET;
 constexpr uint_fast16_t SERIAL_CTL = 0xFF02 - IO_OFFSET;
 
+auto IO::reset() -> void {
+  gpu.reset();
+  memory.fill(0);
+  inputs = 0xFF;
+  lastCycle = 0;
+  tCycleCount = 0;
+  cycle = 0;
+}
+
 auto IO::videoRead(uint16_t addr) const -> uint8_t {
   return gpu.readU8(addr);
 }
@@ -51,7 +60,7 @@ auto IO::ioRead(uint16_t addr) -> uint8_t {
       }
       if ((memory[addr - IO_OFFSET] & 0x20U) == 0) {
         // P15 select and any p15 pressed keys are 0
-        value &= 0xD0U | (inputs >> 4U);
+        value &= 0xD0U | (uint8_t)(inputs >> 4U);
       }
       return value;
     }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../utils/checked_int.hpp"
+
 #include <array>
 #include <cstdint>
 #include <utility>
@@ -46,75 +48,131 @@ inline auto operator&(Flag f1, Flag f2) -> Flag {
 class GB;
 
 struct CPURegisters {
-  union {
-    struct {
-      uint8_t _f;  // Must not be used directly
-      uint8_t a;
-      uint8_t c;
-      uint8_t b;
-      uint8_t e;
-      uint8_t d;
-      uint8_t l;
-      uint8_t h;
-    } r8;
-    struct {
-      uint16_t _af;  // Must not be used directly
-      uint16_t bc;
-      uint16_t de;
-      uint16_t hl;
-      uint16_t sp;
-      uint16_t pc;
-    } r16;
-    std::array<uint8_t, 8> r8_view;
-    std::array<uint16_t, 6> r16_view;
-  };
+  Byte a{0x01};
+  Byte _f{0xb0};
+  Byte b{0x00};
+  Byte c{0x13};
+  Byte d{0x00};
+  Byte e{0xd8};
+  Byte h{0x01};
+  Byte l{0x4d};
+
+  // Plan uint16_t since these MUST never be undef
+  uint16_t sp{0xfffe};
+  uint16_t pc{0x0100};
   bool halt = false;
 
   // Need 3 queued IME values for any switching combo
   // Start with interrupts enabled
   std::array<bool, 3> IME = {true, true, true};
 
-  explicit CPURegisters()
-      : r16{
-            ._af = 0x01B0,
-            .bc = 0x0013,
-            .de = 0x00D8,
-            .hl = 0x014D,
-            .sp = 0xFFFE,
-            .pc = 0x0100,
-        } {}
+  constexpr CPURegisters() = default;
 
   [[nodiscard]] auto getFlags(Flag mask) const -> bool {
-    return (Flag(r8._f) & mask) != Flag::None;
+    Byte mask_val{std::to_underlying(mask)};
+    return Flag((_f & mask_val).decay()) != Flag::None;
   }
 
   auto setFlags(Flag mask, bool set = true) -> void {
-    uint8_t mask_val = std::to_underlying(mask);
-    r8._f = (r8._f & ~mask_val) | (set ? mask_val : 0U);
+    Byte mask_val{std::to_underlying(mask)};
+    _f = (_f & ~mask_val) | (set ? mask_val : 0_B);
   };
   auto resetFlags(Flag mask) -> void { setFlags(mask, /*set=*/false); }
 
-  [[nodiscard]] auto getU8(Reg8 r) const -> uint8_t {
-    return r8_view[std::to_underlying(r)];
-  }
-  [[nodiscard]] auto getU16(Reg16 r) const -> uint16_t {
-    return r16_view[std::to_underlying(r)];
+  [[nodiscard]] auto getU8(Reg8 r) const -> Byte {
+    switch (r) {
+      case Reg8::F:
+        return _f;
+      case Reg8::A:
+        return a;
+      case Reg8::B:
+        return b;
+      case Reg8::C:
+        return c;
+      case Reg8::D:
+        return d;
+      case Reg8::E:
+        return e;
+      case Reg8::H:
+        return h;
+      case Reg8::L:
+        return l;
+    }
+    assert(!"Unreachable");
   }
 
-  auto setU8(Reg8 r, uint8_t value) -> void {
-    if (r == Reg8::F) {
-      r8_view[std::to_underlying(r)] = value & 0xF0U;
-    } else {
-      r8_view[std::to_underlying(r)] = value;
+  [[nodiscard]] auto getU16(Reg16 r) const -> Word {
+    switch (r) {
+      case Reg16::AF:
+        return {a, _f};
+      case Reg16::BC:
+        return {b, c};
+      case Reg16::DE:
+        return {d, e};
+      case Reg16::HL:
+        return {h, l};
+      case Reg16::SP:
+        return Word{sp, {.derived_from_sp = true, .undefined = false}};
+      case Reg16::PC:
+        return Word{pc};
+    }
+    assert(!"Unreachable");
+  }
+
+  auto setU16(Reg16 r, Word value) -> void {
+    switch (r) {
+      case Reg16::AF:
+        a = value.upper();
+        _f = value.lower() & 0xF0_B;
+        break;
+      case Reg16::BC:
+        b = value.upper();
+        c = value.lower();
+        break;
+      case Reg16::DE:
+        d = value.upper();
+        e = value.lower();
+        break;
+      case Reg16::HL:
+        h = value.upper();
+        l = value.lower();
+        break;
+      case Reg16::SP:
+        sp = value.decay();
+        break;
+      case Reg16::PC:
+        pc = value.decay();
+        break;
     }
   }
-  auto setU16(Reg16 r, uint16_t value) -> void {
-    if (r == Reg16::AF) {
-      r16_view[std::to_underlying(r)] = value & 0xFFF0U;
-    } else {
-      r16_view[std::to_underlying(r)] = value;
+
+  auto setU8(Reg8 r, Byte value) -> void {
+    switch (r) {
+      case Reg8::F:
+        _f = value & 0xF0_B;
+        break;
+      case Reg8::A:
+        a = value;
+        break;
+      case Reg8::B:
+        b = value;
+        break;
+      case Reg8::C:
+        c = value;
+        break;
+      case Reg8::D:
+        d = value;
+        break;
+      case Reg8::E:
+        e = value;
+        break;
+      case Reg8::H:
+        h = value;
+        break;
+      case Reg8::L:
+        l = value;
+        break;
     }
   }
 };
-
 }  // namespace gb

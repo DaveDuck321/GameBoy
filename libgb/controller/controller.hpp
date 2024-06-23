@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../utils/checked_int.hpp"
+
 #include <cstdint>
 
 namespace gb {
@@ -10,7 +12,7 @@ class Controller {
   auto operator=(const Controller&) -> Controller& = delete;
   virtual ~Controller() = default;
 
-  [[nodiscard]] virtual auto read(uint16_t addr) const -> uint8_t = 0;
-  virtual void write(uint16_t addr, uint8_t value) = 0;
+  [[nodiscard]] virtual auto read(uint16_t addr) const -> Byte = 0;
+  virtual void write(uint16_t addr, Byte value) = 0;
 };
 }  // namespace gb

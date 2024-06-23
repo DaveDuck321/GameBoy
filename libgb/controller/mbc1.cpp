@@ -24,26 +24,26 @@ class MBC1 : public Controller {
   std::span<uint8_t> rom;
 
   // Allocate enough ram for the full 32KByte RAM mode
-  std::array<uint8_t, 0x8000> ram = {};
+  std::array<Byte, 0x8000> ram = {};
 
  public:
   explicit MBC1(std::span<uint8_t> rom) : rom{rom} {}
 
-  [[nodiscard]] auto read(uint16_t addr) const -> uint8_t final {
+  [[nodiscard]] auto read(uint16_t addr) const -> Byte final {
     switch (addr >> 12U) {
       // Always read from ROM bank 0 if addr < 0x4000
       case 0:
       case 1:
       case 2:
       case 3:
-        return rom[addr];
+        return Byte{rom[addr]};
       // Selectable rom banks from 0x4000 - 0x7FFF
       case 4:
       case 5:
       case 6:
       case 7: {
         uint16_t bankOffset = addr - 0x4000;
-        return rom[(0x4000 * romBank) + bankOffset];
+        return Byte{rom[(0x4000 * romBank) + bankOffset]};
       }
       // Cartridge RAM (Selectable in 32KByte RAM mode)
       case 0xA:
@@ -57,7 +57,7 @@ class MBC1 : public Controller {
     }
   }
 
-  auto write(uint16_t addr, uint8_t value) -> void final {
+  auto write(uint16_t addr, Byte value) -> void final {
     switch (addr >> 12U) {
       // 0x0000 - 0x1FFF area disables RAM in 32KByte RAM mode
       case 0:
@@ -65,13 +65,13 @@ class MBC1 : public Controller {
         if (!bankedRamMode) {
           break;
         }
-        ramEnabled = (value & 0x0AU) == 0xA;
+        ramEnabled = (value & 0x0A_B) == 0xA_B;
         break;
       // 0x2000 - 0x3FFF area selects ROM bank
       case 2:
       case 3:
-        if ((value & 0x1FU) != 0) {
-          romBank = value & 0x1FU;
+        if ((value & 0x1F_B) != 0_B) {
+          romBank = (value & 0x1F_B).decay();
         } else {
           romBank = 1;  // Cannot select bank 0
         }
@@ -83,16 +83,17 @@ class MBC1 : public Controller {
       case 4:
       case 5:
         if (bankedRamMode) {
-          ramBank = value & 0x03U;
+          ramBank = (value & 0x03_B).decay();
         } else {
-          romBank = ((value & 0x03U) << 5U) | (romBank & 0x1FU);
+          romBank =
+              (((value & 0x03_B) << 5U) | (Byte{romBank} & 0x1F_B)).decay();
         }
         break;
 
       // 0x6000 - 0x7FFF area selects memory mode
       case 6:
       case 7:
-        bankedRamMode = (value & 1U) != 0;
+        bankedRamMode = (value & 1_B) != 0_B;
         break;
 
       // 0xA000 - 0xBFFF area is the cartridge RAM.

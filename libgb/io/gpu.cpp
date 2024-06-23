@@ -3,6 +3,7 @@
 #include "../constants.hpp"
 #include "frontend.hpp"
 
+#include <cassert>
 #include <cstdint>
 #include <stdexcept>
 
@@ -34,56 +35,88 @@ constexpr uint16_t INTERRUPTS = 0xFF0F - IO_OFFSET;
 constexpr uint8_t VSYNC_INTERRUPT = 0x01;
 constexpr uint8_t STAT_INTERRUPT = 0x02;
 
+GPU::GPU(std::span<uint8_t, 0x80> io_memory) : io_memory(io_memory) {
+  reset();
+}
+
+auto GPU::reset() -> void {
+  sprites = {};
+  patternTables = {};
+  backgroundMaps = {};
+  vCycleCount = 0;
+  windowOffsetY = 0;
+}
+
 [[nodiscard]] auto GPU::readU8(uint16_t addr) const -> uint8_t {
   switch (addr) {
     case 0x8000 ... 0x97FF:
       // Tile data 1
-      // Flatten 3D array and write to it like the gameboy would
-      // (Might cause errors on some compilers -- TODO: check)
-      static_assert(sizeof(patternTables) == 0x1800);
-      return (reinterpret_cast<const uint8_t*>(&patternTables))[addr - 0x8000];
-    case 0x9800 ... 0x9BFF:
-      // Background map 1
-      static_assert(sizeof(backgroundMap1) == 0x400);
-      return (reinterpret_cast<const uint8_t*>(&backgroundMap1))[addr - 0x9800];
-    case 0x9C00 ... 0x9FFF:
-      // Background map 2
-      static_assert(sizeof(backgroundMap2) == 0x400);
-      return (reinterpret_cast<const uint8_t*>(&backgroundMap2))[addr - 0x9C00];
+      return byteFromPatternTable(addr);
+    case 0x9800 ... 0x9FFF:
+      // Background maps
+      return byteFromBackgroundMaps(addr);
     case 0xFE00 ... 0xFE9F:
       // Sprite attributes
-      static_assert(sizeof(sprites) == 0xA0);
-      return (reinterpret_cast<const uint8_t*>(&sprites))[addr - 0xFE00];
+      return byteFromSpriteAttributes(addr);
     default:
       throw std::range_error("Bad vram address read");
   }
 }
 
 auto GPU::writeU8(uint16_t addr, uint8_t value) -> void {
+  // Never allowed to write undefined to the GPU memory
   switch (addr) {
     case 0x8000 ... 0x97FF:
       // Tile data 1
-      static_assert(sizeof(patternTables) == 0x1800);
-      (reinterpret_cast<uint8_t*>(&patternTables))[addr - 0x8000] = value;
+      const_cast<uint8_t&>(byteFromPatternTable(addr)) = value;
       break;
-    case 0x9800 ... 0x9BFF:
-      // Background map 1
-      static_assert(sizeof(backgroundMap1) == 0x400);
-      (reinterpret_cast<uint8_t*>(&backgroundMap1))[addr - 0x9800] = value;
-      break;
-    case 0x9C00 ... 0x9FFF:
-      // Background map 2
-      static_assert(sizeof(backgroundMap2) == 0x400);
-      (reinterpret_cast<uint8_t*>(&backgroundMap2))[addr - 0x9C00] = value;
+    case 0x9800 ... 0x9FFF:
+      // Background maps
+      const_cast<uint8_t&>(byteFromBackgroundMaps(addr)) = value;
       break;
     case 0xFE00 ... 0xFE9F:
       // Sprite attributes
-      static_assert(sizeof(sprites) == 0xA0);
-      (reinterpret_cast<uint8_t*>(&sprites))[addr - 0xFE00] = value;
+      const_cast<uint8_t&>(byteFromSpriteAttributes(addr)) = value;
       break;
     default:
       throw std::range_error("Bad vram address write");
   }
+}
+
+auto GPU::byteFromSpriteAttributes(uint16_t addr) const -> uint8_t const& {
+  uint16_t base_offset = addr - 0xFE00U;
+  uint16_t attribute_index = base_offset / 4;
+  switch (base_offset % 4) {
+    case 0:
+      return sprites.at(attribute_index).y;
+    case 1:
+      return sprites.at(attribute_index).x;
+    case 2:
+      return sprites.at(attribute_index).tile;
+    case 3:
+      return sprites.at(attribute_index).attribs;
+    default:
+      assert(!"Unreachable");
+  }
+}
+
+auto GPU::byteFromPatternTable(uint16_t addr) const -> uint8_t const& {
+  uint16_t base_offset = addr - 0x8000U;
+  uint16_t tile_base = base_offset / 0x10U;
+  uint16_t offset_in_tile = base_offset % 0x10U;
+  uint16_t row_in_tile = offset_in_tile / 2;
+  uint16_t byte_in_row = offset_in_tile % 2;
+  return patternTables.at(tile_base).at(row_in_tile).at(byte_in_row);
+}
+
+[[nodiscard]] auto GPU::byteFromBackgroundMaps(uint16_t addr) const
+    -> uint8_t const& {
+  uint16_t base_offset = addr - 0x9800U;
+  uint16_t map_index = base_offset / (0x20 * 0x20);
+  uint16_t map_offset = base_offset % (0x20 * 0x20);
+  return backgroundMaps.at(map_index)
+      .at(map_offset / 0x20U)
+      .at(map_offset % 0x20U);
 }
 
 auto GPU::renderLine(IOFrontend& frontend) -> void {
@@ -110,7 +143,6 @@ auto GPU::renderLine(IOFrontend& frontend) -> void {
     if ((io_memory[LCDC] & 0x01U) != 0) {
       backgroundPixel(screenX, screenY, pixelColor);
     }
-
     frontend.addPixel(pixelColor, screenX, screenY);
   }
 }
@@ -123,10 +155,11 @@ auto GPU::setLCDStage(uint8_t stage, bool interrupt) -> bool {
   */
   if ((io_memory[LCD_STAT] & 0x03U) != stage) {
     // Trigger interrupt if stage changed and interrupt enabled
-    if (interrupt)
+    if (interrupt) {
       io_memory[INTERRUPTS] |= STAT_INTERRUPT;
+    }
 
-    io_memory[LCD_STAT] = (io_memory[LCD_STAT] & 0xFC) | stage;
+    io_memory[LCD_STAT] = (io_memory[LCD_STAT] & 0xFCU) | stage;
     return true;
   }
   return false;
@@ -271,21 +304,20 @@ auto GPU::pixelFromMap(uint16_t mapX, uint16_t mapY, bool map2) const
   */
 
   // Read tile index from correct background map
-  uint16_t tileIndex = backgroundMap1[(mapY / 8) % 0x20][(mapX / 8) % 0x20];
+  uint16_t tileIndex = backgroundMaps[0][(mapY / 8) % 0x20][(mapX / 8) % 0x20];
   if (map2) {
-    tileIndex = backgroundMap2[(mapY / 8) % 0x20][(mapX / 8) % 0x20];
+    tileIndex = backgroundMaps[1][(mapY / 8) % 0x20][(mapX / 8) % 0x20];
   }
 
   // Correct index using the signed lookup table if requested
   if ((io_memory[LCDC] & 0x10U) == 0) {
-    int8_t indexOffset = *reinterpret_cast<int8_t*>(&tileIndex);
-    tileIndex = 0x100 + indexOffset;
+    tileIndex = 0x100 + (int8_t)(tileIndex & 0xFFU);
   }
 
   const Tile& tile = patternTables[tileIndex];
   uint8_t upper = (tile[mapY % 8][1] >> (7 - mapX % 8)) & 1;
   uint8_t lower = (tile[mapY % 8][0] >> (7 - mapX % 8)) & 1;
-  uint8_t colorIndex = (upper << 1) + lower;
+  uint8_t colorIndex = (upper << 1U) + lower;
 
   // Gets the true background color
   return (io_memory[BG_Palette] >> (2 * colorIndex)) & 0x03U;

@@ -42,6 +42,8 @@ class IO {
   explicit IO(std::unique_ptr<IOFrontend> frontend)
       : gpu(memory), frontend(std::move(frontend)) {}
 
+  auto reset() -> void;
+
   [[nodiscard]] auto videoRead(uint16_t addr) const -> uint8_t;
   auto videoWrite(uint16_t addr, uint8_t value) -> void;
 

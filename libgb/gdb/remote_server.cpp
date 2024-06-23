@@ -18,6 +18,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 
 using namespace gb::gdb;
 
@@ -26,6 +27,7 @@ namespace {
 constexpr size_t MaxPacketSize = 100UL * 1024UL;
 constexpr std::string Unsupported{};
 
+#ifdef DEBUG_GDB_REMOTE
 auto format_ip_addr(in_addr_t network_order_ip) -> std::string {
   const auto host_order_ip = ntohl(network_order_ip);
   return std::format("{}.{}.{}.{}", (host_order_ip >> 24U) & 0xffU,
@@ -33,6 +35,7 @@ auto format_ip_addr(in_addr_t network_order_ip) -> std::string {
                      (host_order_ip >> 8U) & 0xffU,
                      (host_order_ip >> 0U) & 0xffU);
 }
+#endif
 
 auto encode_as_hex(uint8_t byte) -> std::string {
   std::stringstream ss;
@@ -99,8 +102,9 @@ auto RemoteServer::wait_next_packet_raw() const -> std::string {
 
 auto RemoteServer::wait_next_packet() const -> std::string {
   auto packet = wait_next_packet_raw();
+#ifdef DEBUG_GDB_REMOTE
   std::cout << "-> " << packet << std::endl;
-
+#endif
   if (packet.empty() || packet == "+") {
     return packet;
   }
@@ -131,7 +135,9 @@ auto RemoteServer::wait_next_packet() const -> std::string {
 
 auto RemoteServer::send_ack_response() const -> void {
   // Special case but only needed until llvm has established QStartNoAckMode
+#ifdef DEBUG_GDB_REMOTE
   std::cout << "+" << std::endl;
+#endif
   ::send(m_gdb_connection_fd, "+", 1, 0);
 }
 
@@ -144,7 +150,9 @@ auto RemoteServer::send_response(std::string_view data) const -> void {
   response.append("#");
   response.append(calculate_checksum(data));
 
+#ifdef DEBUG_GDB_REMOTE
   std::cout << "<- " << response << std::endl;
+#endif
   ::send(m_gdb_connection_fd, response.data(), response.size(), 0);
 }
 
@@ -326,6 +334,29 @@ auto RemoteServer::process_s_request() -> void {
   do_continue(std::nullopt);
 }
 
+auto RemoteServer::process_k_request() -> void {
+  m_breakpoints.clear();
+  m_is_in_step = false;
+  const auto port = do_kill();
+  send_response("X01");
+
+  close(m_gdb_connection_fd);
+  if (listen(m_listen_fd, 1) != 0) {
+    throw std::runtime_error(
+        std::format("Could not listen to port {} (errno {})", port, errno));
+  }
+
+  sockaddr_in connected_socket_addr = {};
+  socklen_t connected_socket_addr_len = sizeof(connected_socket_addr);
+  m_gdb_connection_fd = accept4(m_listen_fd, (sockaddr*)&connected_socket_addr,
+                                &connected_socket_addr_len, SOCK_CLOEXEC);
+
+  if (m_gdb_connection_fd < 0) {
+    throw std::runtime_error(
+        std::format("Not connection received on port {} (errno)", port, errno));
+  }
+}
+
 auto RemoteServer::process_request(std::string_view request) -> void {
   if (request.starts_with("vRun")) {
     process_vrun_request(request.substr(4));
@@ -352,6 +383,8 @@ auto RemoteServer::process_request(std::string_view request) -> void {
       return process_c_request(request.substr(1));
     case 's':
       return process_s_request();
+    case 'k':
+      return process_k_request();
     default:
       return send_response(Unsupported);
   }
@@ -391,10 +424,11 @@ auto RemoteServer::wait_for_connection(uint16_t port) -> void {
 
   assert(connected_socket_addr_len == sizeof(connected_socket_addr) &&
          connected_socket_addr.sin_family == AF_INET);
-
+#ifdef DEBUG_GDB_REMOTE
   std::cout << "Accepted connection from: "
             << format_ip_addr(connected_socket_addr.sin_addr.s_addr)
             << std::endl;
+#endif
 }
 
 auto RemoteServer::process_next_request() -> void {
@@ -414,9 +448,9 @@ auto RemoteServer::process_next_request() -> void {
     return false;
   }
 
+#ifdef DEBUG_GDB_REMOTE
   const auto request =
       std::string_view{(const char*)buffer.data(), (size_t)size};
-
   if (request.size() == 1 && request[0] == '\x03') {
     std::cout << "-> ^C" << std::endl;
   } else {
@@ -424,6 +458,7 @@ auto RemoteServer::process_next_request() -> void {
                              request, encode_as_hex(request))
               << std::endl;
   }
+#endif
   return true;
 }
 
@@ -431,16 +466,13 @@ auto RemoteServer::is_active_breakpoint(size_t addr) const -> bool {
   return m_is_in_step || m_breakpoints.find(addr) != m_breakpoints.end();
 }
 
-auto RemoteServer::notify_break(bool is_breakpoint) -> void {
+auto RemoteServer::notify_break(BreakReason reason, bool is_breakpoint)
+    -> void {
   bool did_stop_due_to_step = m_is_in_step;
   m_is_in_step = false;  // Consume step
 
   std::stringstream ss;
-  if (is_breakpoint) {
-    ss << "T02";  // SIGINT
-  } else {
-    ss << "T05";  // SIGTRAP
-  }
+  ss << "T" << encode_as_hex(std::to_underlying(reason));
 
   // Append register information
   for (size_t register_number = 0;; register_number++) {

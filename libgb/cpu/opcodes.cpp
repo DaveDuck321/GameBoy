@@ -1,10 +1,13 @@
 #include "cpu.hpp"
 
 #include "../error_handling.hpp"
+#include "../utils/checked_int.hpp"
 
 #include <array>
 #include <cstdint>
 #include <format>
+
+#include <iostream>
 
 using namespace gb;
 
@@ -16,7 +19,7 @@ constexpr std::array register16Opcodes = {Register::BC, Register::DE,
                                           Register::HL, Register::SP};
 
 auto CPU::processNextInstruction() -> void {
-  uint8_t opcode = advancePC1Byte();
+  auto const opcode = advancePC1Byte();
 
   switch (opcode) {
       // 8-Bit loads
@@ -160,56 +163,56 @@ auto CPU::processNextInstruction() -> void {
       ADD_n(getRegU8(registerOpcodes[opcode - 0x80U]), false);
       break;
     case 0xC6:  // Add A, #
-      ADD_n(advancePC1Byte(), false);
+      ADD_n(Byte{advancePC1Byte()}, false);
       break;
     // ADC
     case 0x88 ... 0x8F:  // ADC A, n
       ADC_n(getRegU8(registerOpcodes[opcode - 0x88U]));
       break;
     case 0xCE:  // ADC A, #
-      ADC_n(advancePC1Byte());
+      ADC_n(Byte{advancePC1Byte()});
       break;
     // SUB
     case 0x90 ... 0x97:  // SUB n
       SUB_n(getRegU8(registerOpcodes[opcode - 0x90U]), false);
       break;
     case 0xD6:  // SUB #
-      SUB_n(advancePC1Byte(), false);
+      SUB_n(Byte{advancePC1Byte()}, false);
       break;
     // SBC
     case 0x98 ... 0x9F:  // SBC A,n
       SBC_n(getRegU8(registerOpcodes[opcode - 0x98U]));
       break;
     case 0xDE:  // SBC A, #
-      SBC_n(advancePC1Byte());
+      SBC_n(Byte{advancePC1Byte()});
       break;
     // AND
     case 0xA0 ... 0xA7:  // AND n
       AND_n(getRegU8(registerOpcodes[opcode - 0xA0U]));
       break;
     case 0xE6:  // AND #
-      AND_n(advancePC1Byte());
+      AND_n(Byte{advancePC1Byte()});
       break;
     // OR
     case 0xB0 ... 0xB7:  // OR n
       OR_n(getRegU8(registerOpcodes[opcode - 0xB0]));
       break;
     case 0xF6:  // OR #
-      OR_n(advancePC1Byte());
+      OR_n(Byte{advancePC1Byte()});
       break;
     // XOR
     case 0xA8 ... 0xAF:  // XOR n
       XOR_n(getRegU8(registerOpcodes[opcode - 0xA8]));
       break;
     case 0xEE:  // XOR #
-      XOR_n(advancePC1Byte());
+      XOR_n(Byte{advancePC1Byte()});
       break;
     // CP
     case 0xB8 ... 0xBF:  // CP n
       CP_n(getRegU8(registerOpcodes[opcode - 0xB8]));
       break;
     case 0xFE:  // CP #
-      CP_n(advancePC1Byte());
+      CP_n(Byte{advancePC1Byte()});
       break;
 
     // INC
@@ -325,7 +328,7 @@ auto CPU::processNextInstruction() -> void {
       // Many functions: instruction 0xCB changes depending on args
       // Luckily all decode easily
     case 0xCB: {
-      uint8_t arg = advancePC1Byte();
+      auto const arg = advancePC1Byte();
       switch (arg) {
         // TODO: Possibly need to decrement cycle count here
         // Rotates and Shifts
@@ -474,7 +477,10 @@ auto CPU::processNextInstruction() -> void {
       RETI();
       break;
 
+    case 0xD3:
+      throw Trap{std::format("Trap executed @ {:#06x}", registers.pc)};
     default:
-      throw BadOpcode(std::format("Bad opcode {:#04x}", opcode));
+      throw BadOpcode(
+          std::format("Bad opcode {:#04x} @ {:#06x}", opcode, registers.pc));
   }
 }

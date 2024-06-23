@@ -1,6 +1,7 @@
 #pragma once
 
 #include "controller/controller.hpp"
+#include "utils/checked_int.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -34,8 +35,8 @@ class Cartridge {
 
   void populateMetadata(const std::vector<uint8_t>& rom);
 
-  [[nodiscard]] auto read(uint16_t addr) const -> uint8_t;
-  auto write(uint16_t addr, uint8_t value) -> void;
+  [[nodiscard]] auto read(uint16_t addr) const -> Byte;
+  auto write(uint16_t addr, Byte value) -> void;
 };
 
 // Controller type

@@ -1,5 +1,7 @@
 #include "cpu.hpp"
 #include "../io/io.hpp"
+#include "../utils/checked_int.hpp"
+#include "registers.hpp"
 
 #include <cstdint>
 #include <iostream>
@@ -8,41 +10,45 @@ using namespace gb;
 
 CPU::CPU(MemoryMap& memory_map, IO& io) : memory_map(&memory_map), io(&io) {}
 
-auto CPU::readU8(uint16_t addr) -> uint8_t {
+auto CPU::reset() -> void {
+  registers = CPURegisters{};
+}
+
+auto CPU::readU8(uint16_t addr) -> Byte {
   // Reads an 8-Bit value from 'addr'
   io->cycle++;  // Under normal circumstances a read takes 1 cycle
   return memory_map->read(addr);
 }
 
-auto CPU::readU16(uint16_t addr) -> uint16_t {
+auto CPU::readU16(uint16_t addr) -> Word {
   // Reads a 16-Bit LE value from 'addr'
-  return readU8(addr) + (readU8(addr + 1) << 8U);
+  return {readU8(addr + 1), readU8(addr)};
 }
 
-auto CPU::writeU8(uint16_t addr, uint8_t value) -> void {
+auto CPU::writeU8(uint16_t addr, Byte value) -> void {
   // Writes an 8-Bit value to 'addr'
   io->cycle++;  // Under normal circumstances a write takes 1 cycle
   memory_map->write(addr, value);
 }
 
-auto CPU::writeU16(uint16_t addr, uint16_t value) -> void {
+auto CPU::writeU16(uint16_t addr, Word value) -> void {
   // Writes a 16-Bit LE value to 'addr'
-  writeU8(addr, value & 0xFFU);
-  writeU8(addr + 1, value >> 8U);
+  writeU8(addr, value.lower());
+  writeU8(addr + 1, value.upper());
 }
 
 auto CPU::advancePC1Byte() -> uint8_t {
   // Returns the 8-Bit value pointed to by the program counter, increments the
   // counter
-  return readU8(registers.r16.pc++);
+  return readU8(registers.pc++).decay();
 }
 
 auto CPU::advancePC2Bytes() -> uint16_t {
   // Returns the 16-Bit value pointed to by the program counter, increments the
   // counter twice
-  uint16_t result = readU16(registers.r16.pc);
-  registers.r16.pc += 2;
-  return result;
+  Word result = readU16(registers.pc);
+  registers.pc += 2;
+  return result.decay();
 }
 
 auto CPU::handleInterrupts() -> void {
@@ -57,7 +63,7 @@ auto CPU::handleInterrupts() -> void {
       4       P10-P13 -> Low      0x60
   */
   uint8_t triggered =
-      memory_map->read(0xFFFF) & memory_map->read(0xFF0F) & 0x1FU;
+      (memory_map->read(0xFFFF) & memory_map->read(0xFF0F) & 0x1F_B).decay();
 
   if (triggered != 0) {
     // Interrupt has been triggered, halt should immediately terminate
@@ -72,7 +78,7 @@ auto CPU::handleInterrupts() -> void {
     registers.IME.fill(false);
     for (uint8_t bit = 0; bit != 5; bit++) {
       if ((triggered & (1U << bit)) != 0) {
-        memory_map->write(0xFF0F, memory_map->read(0xFF0F) ^ (1U << bit));
+        memory_map->write(0xFF0F, memory_map->read(0xFF0F) ^ Byte(1U << bit));
         CALL_nn(0x40 + 0x08 * bit);
         break;
       }

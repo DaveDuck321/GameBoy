@@ -59,10 +59,10 @@ void Cartridge::populateMetadata(const std::vector<uint8_t>& rom) {
   ramSize = rom[0x149];
 }
 
-auto Cartridge::read(uint16_t addr) const -> uint8_t {
+auto Cartridge::read(uint16_t addr) const -> Byte {
   return controller->read(addr);
 }
 
-void Cartridge::write(uint16_t addr, uint8_t value) {
+void Cartridge::write(uint16_t addr, Byte value) {
   controller->write(addr, value);
 }

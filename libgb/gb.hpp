@@ -30,11 +30,12 @@ class GB {
   GB(std::string_view rom_file, std::unique_ptr<IOFrontend> io_frontend);
 
   // Consume 0 CPU cycles
-  [[nodiscard]] auto readU8(uint16_t addr) const -> uint8_t;
-  [[nodiscard]] auto readU16(uint16_t addr) const -> uint16_t;
+  [[nodiscard]] auto readU8(uint16_t addr) const -> Byte;
+  [[nodiscard]] auto readU16(uint16_t addr) const -> Word;
 
   [[nodiscard]] auto getRegisters() -> CPURegisters&;
   auto isSimulationFinished() -> bool;
+  auto reset() -> void;
   auto clock() -> void;
 
   // Debug

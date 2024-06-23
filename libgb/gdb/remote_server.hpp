@@ -24,6 +24,7 @@ class RemoteServer {
   std::function<void(std::string_view)> run_elf;
   std::function<bool()> is_attached;
   std::function<void(std::optional<size_t>)> do_continue;
+  std::function<uint16_t()> do_kill;
 
   [[nodiscard]] auto wait_next_packet_raw() const -> std::string;
   [[nodiscard]] auto wait_next_packet() const -> std::string;
@@ -41,10 +42,17 @@ class RemoteServer {
   auto process_m_request(std::string_view query) -> void;
   auto process_c_request(std::string_view query) -> void;
   auto process_s_request() -> void;
+  auto process_k_request() -> void;
 
   auto process_request(std::string_view request) -> void;
 
  public:
+  enum class BreakReason : uint8_t {
+    SIGINT = 2,
+    SIGTRAP = 5,
+    SIGSEGV = 11,
+  };
+
   RemoteServer(std::initializer_list<std::string_view> register_names)
       : m_register_names(register_names){};
   RemoteServer(const RemoteServer&) = delete;
@@ -56,7 +64,7 @@ class RemoteServer {
   [[nodiscard]] auto has_remote_interrupt_request() const -> bool;
 
   [[nodiscard]] auto is_active_breakpoint(size_t addr) const -> bool;
-  auto notify_break(bool is_breakpoint) -> void;
+  auto notify_break(BreakReason, bool is_breakpoint) -> void;
 
   template <typename Fn>
   auto add_read_register_value_callback(Fn&& fn) -> void {
@@ -81,6 +89,11 @@ class RemoteServer {
   template <typename Fn>
   auto add_do_continue_callback(Fn&& fn) -> void {
     do_continue = std::forward<Fn>(fn);
+  }
+
+  template <typename Fn>
+  auto add_do_kill_callback(Fn&& fn) -> void {
+    do_kill = std::forward<Fn>(fn);
   }
 };
 

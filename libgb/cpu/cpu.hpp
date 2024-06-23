@@ -1,9 +1,11 @@
 #pragma once
 
 #include "../memory_map.hpp"
+#include "../utils/checked_int.hpp"
 #include "registers.hpp"
 
 #include <cstdint>
+#include <vector>
 
 namespace gb {
 class Cartridge;
@@ -40,12 +42,14 @@ class CPU {
   auto operator=(const CPU&) -> CPU& = delete;
   ~CPU() = default;
 
-  // Reads cannot be const since they consume 1 cycle
-  [[nodiscard]] auto readU8(uint16_t addr) -> uint8_t;
-  [[nodiscard]] auto readU16(uint16_t addr) -> uint16_t;
+  auto reset() -> void;
 
-  auto writeU8(uint16_t addr, uint8_t value) -> void;
-  auto writeU16(uint16_t addr, uint16_t value) -> void;
+  // Reads cannot be const since they consume 1 cycle
+  [[nodiscard]] auto readU8(uint16_t addr) -> Byte;
+  [[nodiscard]] auto readU16(uint16_t addr) -> Word;
+
+  auto writeU8(uint16_t addr, Byte value) -> void;
+  auto writeU16(uint16_t addr, Word value) -> void;
 
   auto clock() -> void;
 
@@ -60,10 +64,10 @@ class CPU {
   auto processNextInstruction() -> void;
 
   // Helper function for the _ptr registers
-  auto getRegU8(Register) -> uint8_t;
-  auto setRegU8(Register, uint8_t) -> void;
-  auto getRegU16(Register) -> uint16_t;
-  auto setRegU16(Register, uint16_t) -> void;
+  auto getRegU8(Register) -> Byte;
+  auto setRegU8(Register, Byte) -> void;
+  auto getRegU16(Register) -> Word;
+  auto setRegU16(Register, Word) -> void;
 
   // 8-Bit loads
   // LD r, n
@@ -124,28 +128,28 @@ class CPU {
 
   // 8-Bit ALU
   // ADD n
-  void ADD_n(uint8_t n, bool carry);
+  void ADD_n(Byte n, bool carry);
 
   // ADC n
-  void ADC_n(uint8_t n);
+  void ADC_n(Byte n);
 
   // SUB n
-  void SUB_n(uint8_t n, bool carry);
+  void SUB_n(Byte n, bool carry);
 
   // SBC n
-  void SBC_n(uint8_t n);
+  void SBC_n(Byte n);
 
   // AND n
-  void AND_n(uint8_t n);
+  void AND_n(Byte n);
 
   // OR n
-  void OR_n(uint8_t n);
+  void OR_n(Byte n);
 
   // XOR n
-  void XOR_n(uint8_t n);
+  void XOR_n(Byte n);
 
   // CP n
-  void CP_n(uint8_t n);
+  void CP_n(Byte n);
 
   // INC n
   void INC_r(Register r);
@@ -155,8 +159,8 @@ class CPU {
 
   // 16-Bit ALU
   // Helper function for 16-Bit addition
-  auto ADD16(uint16_t n1, uint16_t n2) -> uint16_t;
-  auto ADD16_SIGN(uint16_t nn, int8_t n) -> uint16_t;
+  auto ADD16(Word n1, Word n2) -> Word;
+  auto ADD16_SIGN(Word nn, Byte n, bool derived_from_sp) -> Word;
 
   // ADD HL,n
   void ADD16_HL_n(Register n);
@@ -203,11 +207,11 @@ class CPU {
 
   // Rotates and Shifts
   // Helper functions for rotate left
-  auto ROT_LC(uint8_t value) -> uint8_t;
-  auto ROT_L(uint8_t value) -> uint8_t;
+  auto ROT_LC(Byte value) -> Byte;
+  auto ROT_L(Byte value) -> Byte;
   // Helper functions for right rotation
-  auto ROT_RC(uint8_t value) -> uint8_t;
-  auto ROT_R(uint8_t value) -> uint8_t;
+  auto ROT_RC(Byte value) -> Byte;
+  auto ROT_R(Byte value) -> Byte;
 
   // RLC n
   void RLCA();             // RLCA

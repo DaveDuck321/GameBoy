@@ -1,4 +1,5 @@
 #include "../io/io.hpp"
+#include "../utils/checked_int.hpp"
 #include "cpu.hpp"
 #include "registers.hpp"
 
@@ -8,7 +9,7 @@
 
 using namespace gb;
 
-auto CPU::getRegU8(Register reg) -> uint8_t {
+auto CPU::getRegU8(Register reg) -> Byte {
   switch (reg) {
     case Register::A:
       return registers.getU8(Reg8::A);
@@ -27,17 +28,17 @@ auto CPU::getRegU8(Register reg) -> uint8_t {
     case Register::L:
       return registers.getU8(Reg8::L);
     case Register::HL_ptr:
-      return readU8(registers.getU16(Reg16::HL));
+      return readU8(registers.getU16(Reg16::HL).decay());
     case Register::BC_ptr:
-      return readU8(registers.getU16(Reg16::BC));
+      return readU8(registers.getU16(Reg16::BC).decay());
     case Register::DE_ptr:
-      return readU8(registers.getU16(Reg16::DE));
+      return readU8(registers.getU16(Reg16::DE).decay());
     default:
       throw std::runtime_error("Register cannot be converted to u8");
   }
 }
 
-auto CPU::setRegU8(Register reg, uint8_t value) -> void {
+auto CPU::setRegU8(Register reg, Byte value) -> void {
   switch (reg) {
     case Register::A:
       return registers.setU8(Reg8::A, value);
@@ -56,17 +57,17 @@ auto CPU::setRegU8(Register reg, uint8_t value) -> void {
     case Register::L:
       return registers.setU8(Reg8::L, value);
     case Register::HL_ptr:
-      return writeU8(registers.getU16(Reg16::HL), value);
+      return writeU8(registers.getU16(Reg16::HL).decay(), value);
     case Register::BC_ptr:
-      return writeU8(registers.getU16(Reg16::BC), value);
+      return writeU8(registers.getU16(Reg16::BC).decay(), value);
     case Register::DE_ptr:
-      return writeU8(registers.getU16(Reg16::DE), value);
+      return writeU8(registers.getU16(Reg16::DE).decay(), value);
     default:
       throw std::runtime_error("Register cannot be converted to u8");
   }
 }
 
-auto CPU::getRegU16(Register reg) -> uint16_t {
+auto CPU::getRegU16(Register reg) -> Word {
   switch (reg) {
     case Register::AF:
       return registers.getU16(Reg16::AF);
@@ -85,7 +86,7 @@ auto CPU::getRegU16(Register reg) -> uint16_t {
   }
 }
 
-auto CPU::setRegU16(Register reg, uint16_t value) -> void {
+auto CPU::setRegU16(Register reg, Word value) -> void {
   switch (reg) {
     case Register::AF:
       return registers.setU16(Reg16::AF, value);
@@ -112,7 +113,7 @@ void CPU::LD_r_n(Register r, uint8_t n) {
       n = B,C,D,E,H,L
       nn = 8 bit immediate value
   */
-  setRegU8(r, n);
+  setRegU8(r, Byte{n});
 }
 
 void CPU::LD_r_nn(Register r, uint16_t nn) {
@@ -144,7 +145,7 @@ void CPU::LD_r_A(Register r) {
   Use with:
       n = A,B,C,D,E,H,L
   */
-  setRegU8(r, registers.r8.a);
+  setRegU8(r, registers.a);
 }
 void CPU::LD_nn_A(uint16_t addr) {
   /*
@@ -154,7 +155,7 @@ void CPU::LD_nn_A(uint16_t addr) {
       n = (BC),(DE),(HL),(nn)
       nn = two byte immediate value. (LS byte first.)
   */
-  writeU8(addr, registers.r8.a);
+  writeU8(addr, registers.a);
 }
 
 void CPU::LD_A_C() {
@@ -164,7 +165,7 @@ void CPU::LD_A_C() {
   Same as:
       LD A,($FF00+C)
   */
-  registers.r8.a = readU8(0xFF00U | registers.r8.c);
+  registers.a = readU8(Word(0xFF_B, registers.c).decay());
 }
 
 void CPU::LD_C_A() {
@@ -172,7 +173,7 @@ void CPU::LD_C_A() {
   Description:
       Put A into address $FF00 + register C.
   */
-  writeU8(0xFF00U | registers.r8.c, registers.r8.a);
+  writeU8(Word(0xFF_B, registers.c).decay(), registers.a);
 }
 
 void CPU::LDD_A_HL() {
@@ -182,10 +183,10 @@ void CPU::LDD_A_HL() {
   Same as:
       LD A,(HL) - DEC HL
   */
-  uint16_t hl = getRegU16(Register::HL);
-  registers.r8.a = readU8(hl);
+  Word hl = getRegU16(Register::HL);
+  registers.a = readU8(hl.decay());
   // Don't use DEC16 here. Its free
-  setRegU16(Register::HL, hl - 1);
+  setRegU16(Register::HL, hl - 1_W);
 }
 
 void CPU::LDD_HL_A() {
@@ -195,10 +196,10 @@ void CPU::LDD_HL_A() {
   Same as:
       LD (HL),A - DEC HL
   */
-  uint16_t hl = getRegU16(Register::HL);
-  writeU8(hl, registers.r8.a);
+  Word hl = getRegU16(Register::HL);
+  writeU8(hl.decay(), registers.a);
   // Don't use DEC16 here. Its free
-  setRegU16(Register::HL, hl - 1);
+  setRegU16(Register::HL, hl - 1_W);
 }
 
 void CPU::LDI_A_HL() {
@@ -208,10 +209,10 @@ void CPU::LDI_A_HL() {
   Same as:
       LD A,(HL) - INC HL
   */
-  uint16_t hl = getRegU16(Register::HL);
-  registers.r8.a = readU8(hl);
+  Word hl = getRegU16(Register::HL);
+  registers.a = readU8(hl.decay());
   // Don't use INC16 here. Its free
-  setRegU16(Register::HL, hl + 1);
+  setRegU16(Register::HL, hl + 1_W);
 }
 
 void CPU::LDI_HL_A() {
@@ -221,10 +222,10 @@ void CPU::LDI_HL_A() {
   Same as:
       LD (HL),A - INC HL
   */
-  uint16_t hl = getRegU16(Register::HL);
-  writeU8(hl, registers.r8.a);
+  Word hl = getRegU16(Register::HL);
+  writeU8(hl.decay(), registers.a);
   // Don't use INC16 here. Its free
-  setRegU16(Register::HL, hl + 1);
+  setRegU16(Register::HL, hl + 1_W);
 }
 
 void CPU::LDH_n_A(uint8_t n) {
@@ -234,7 +235,7 @@ void CPU::LDH_n_A(uint8_t n) {
   Use with:
       n = one byte immediate value
   */
-  writeU8(0xFF00U | n, registers.r8.a);
+  writeU8(0xFF00U | n, registers.a);
 }
 
 void CPU::LDH_A_n(uint8_t n) {
@@ -244,7 +245,7 @@ void CPU::LDH_A_n(uint8_t n) {
   Use with:
       n = one byte immediate value
   */
-  registers.r8.a = readU8(0xFF00U | n);
+  registers.a = readU8(0xFF00U | n);
 }
 
 void CPU::LD16_n_nn(Register n, uint16_t nn) {
@@ -254,7 +255,7 @@ void CPU::LD16_n_nn(Register n, uint16_t nn) {
   Use with:
       n = BC,DE,HL,SP  nn = 16 bit immediate value
   */
-  setRegU16(n, nn);
+  setRegU16(n, Word{nn});
 }
 
 void CPU::LD16_SP_HL() {
@@ -263,7 +264,7 @@ void CPU::LD16_SP_HL() {
       Put HL into Stack Pointer (SP)
   */
   io->cycle++;  // 16-Bit load takes an extra cycle
-  registers.r16.sp = getRegU16(Register::HL);
+  registers.sp = getRegU16(Register::HL).decay();
 }
 
 void CPU::LDHL_SP_n(int8_t n) {
@@ -278,7 +279,8 @@ void CPU::LDHL_SP_n(int8_t n) {
       H - Set or reset according to operation.
       C - Set or reset according to operation.
   */
-  setRegU16(Register::HL, ADD16_SIGN(registers.r16.sp, n));
+  setRegU16(Register::HL,
+            ADD16_SIGN(registers.getU16(Reg16::SP), Byte{(uint8_t)n}, true));
 }
 
 void CPU::LD_nn_SP(uint16_t nn) {
@@ -288,7 +290,7 @@ void CPU::LD_nn_SP(uint16_t nn) {
   Use with:
       nn = two byte immediate address
   */
-  writeU16(nn, registers.r16.sp);
+  writeU16(nn, registers.getU16(Reg16::SP));
 }
 
 void CPU::PUSH(Register r) {
@@ -301,8 +303,8 @@ void CPU::PUSH(Register r) {
   */
   // TODO: check order
   io->cycle++;  // PUSH takes extra cycle -- 16-Bit read?
-  registers.r16.sp -= 2;
-  writeU16(registers.r16.sp, getRegU16(r));
+  registers.sp -= 2;
+  writeU16(registers.sp, getRegU16(r));
 }
 
 void CPU::POP(Register r) {
@@ -314,11 +316,11 @@ void CPU::POP(Register r) {
       nn = AF,BC,DE,HL
   */
   // TODO: check order
-  setRegU16(r, readU16(registers.r16.sp));
-  registers.r16.sp += 2;
+  setRegU16(r, readU16(registers.sp));
+  registers.sp += 2;
 }
 
-void CPU::ADD_n(uint8_t n, bool carry) {
+void CPU::ADD_n(Byte n, bool carry) {
   // TODO: guessed C flag operation, might be wrong
   /*
   Description:
@@ -331,17 +333,19 @@ void CPU::ADD_n(uint8_t n, bool carry) {
       H - Set if carry from bit 3.
       C - Set if carry from bit 7
   */
-  const auto carry_int = uint8_t(carry);
-  registers.setFlags(Flag::C, (n + carry_int) > 0xFFU - registers.r8.a);
+  const auto carry_int = carry ? 1_B : 0_B;
+  const bool does_carry_cause_overflow = carry && (n == 0xFF_B);
+  registers.setFlags(Flag::C, ((n + carry_int) > 0xFF_B - registers.a) ||
+                                  does_carry_cause_overflow);
   registers.setFlags(
-      Flag::H, ((n & 0x0FU) + carry_int) > (0x0FU - (registers.r8.a & 0x0FU)));
+      Flag::H, ((n & 0x0F_B) + carry_int) > (0x0F_B - (registers.a & 0x0F_B)));
 
-  registers.r8.a = registers.r8.a + n + carry_int;
-  registers.setFlags(Flag::Z, registers.r8.a == 0);
+  registers.a = registers.a + n + carry_int;
+  registers.setFlags(Flag::Z, registers.a == 0_B);
   registers.resetFlags(Flag::N);
 }
 
-void CPU::ADC_n(uint8_t n) {
+void CPU::ADC_n(Byte n) {
   /*
   Description:
       Add n + Carry flag to A.
@@ -356,7 +360,7 @@ void CPU::ADC_n(uint8_t n) {
   ADD_n(n, registers.getFlags(Flag::C));
 }
 
-void CPU::SUB_n(uint8_t n, bool carry) {
+void CPU::SUB_n(Byte n, bool carry) {
   // TODO: guessed C flag operation, might be wrong
   /*
   Description:
@@ -369,20 +373,21 @@ void CPU::SUB_n(uint8_t n, bool carry) {
       H - Set if no borrow from bit 4.
       C - Set if no borrow.
   */
-  const uint8_t adjusted_n = n + (uint8_t)carry;
-  const bool does_carry_cause_overflow = (n == 0xFF && carry);
+  const auto carry_int = carry ? 1_B : 0_B;
+  const auto adjusted_n = n + carry_int;
+  const bool does_carry_cause_overflow = carry && (n == 0xFF_B);
 
   registers.setFlags(Flag::C,
-                     registers.r8.a < adjusted_n || does_carry_cause_overflow);
+                     registers.a < adjusted_n || does_carry_cause_overflow);
   registers.setFlags(Flag::H,
-                     (registers.r8.a & 0x0FU) < (n & 0x0FU) + (uint8_t)carry);
+                     (registers.a & 0x0F_B) < (n & 0x0F_B) + carry_int);
 
-  registers.r8.a = registers.r8.a - adjusted_n;
-  registers.setFlags(Flag::Z, registers.r8.a == 0);
+  registers.a = registers.a - adjusted_n;
+  registers.setFlags(Flag::Z, registers.a == 0_B);
   registers.setFlags(Flag::N);
 }
 
-void CPU::SBC_n(uint8_t n) {
+void CPU::SBC_n(Byte n) {
   /*
   Description:
       Subtract n + Carry flag from A.
@@ -397,7 +402,7 @@ void CPU::SBC_n(uint8_t n) {
   SUB_n(n, registers.getFlags(Flag::C));
 }
 
-void CPU::AND_n(uint8_t n) {
+void CPU::AND_n(Byte n) {
   /*
   Description:
       Logically AND n with A, result in A.
@@ -409,13 +414,13 @@ void CPU::AND_n(uint8_t n) {
       H - Set.
       C - Reset.
   */
-  registers.r8.a = registers.r8.a & n;
-  registers.setFlags(Flag::Z, registers.r8.a == 0);
+  registers.a = registers.a & n;
+  registers.setFlags(Flag::Z, registers.a == 0_B);
   registers.setFlags(Flag::H);
   registers.resetFlags(Flag::N | Flag::C);
 }
 
-void CPU::OR_n(uint8_t n) {
+void CPU::OR_n(Byte n) {
   /*
   Description:
       Logical OR n with register A, result in A.
@@ -427,12 +432,12 @@ void CPU::OR_n(uint8_t n) {
       H - Reset.
       C - Reset
   */
-  registers.r8.a = registers.r8.a | n;
-  registers.setFlags(Flag::Z, registers.r8.a == 0);
+  registers.a = registers.a | n;
+  registers.setFlags(Flag::Z, registers.a == 0_B);
   registers.resetFlags(Flag::H | Flag::N | Flag::C);
 }
 
-void CPU::XOR_n(uint8_t n) {
+void CPU::XOR_n(Byte n) {
   /*
   Description:
       Logical exclusive OR n with register A, result in A.
@@ -444,12 +449,12 @@ void CPU::XOR_n(uint8_t n) {
       H - Reset.
       C - Reset
   */
-  registers.r8.a = registers.r8.a ^ n;
-  registers.setFlags(Flag::Z, registers.r8.a == 0);
+  registers.a = registers.a ^ n;
+  registers.setFlags(Flag::Z, registers.a == 0_B);
   registers.resetFlags(Flag::H | Flag::N | Flag::C);
 }
 
-void CPU::CP_n(uint8_t n) {
+void CPU::CP_n(Byte n) {
   /*
   Description:
       Compare A with n. This is basically an A - n subtraction instruction but
@@ -462,10 +467,10 @@ void CPU::CP_n(uint8_t n) {
     H - Set if no borrow from bit 4.
     C - Set for no borrow. (Set if A < n.)
   */
-  registers.setFlags(Flag::Z, registers.r8.a == n);
+  registers.setFlags(Flag::Z, registers.a == n);
   registers.setFlags(Flag::N);
-  registers.setFlags(Flag::H, (registers.r8.a & 0x0FU) < (n & 0x0FU));
-  registers.setFlags(Flag::C, registers.r8.a < n);
+  registers.setFlags(Flag::H, (registers.a & 0x0F_B) < (n & 0x0F_B));
+  registers.setFlags(Flag::C, registers.a < n);
 }
 
 void CPU::INC_r(Register r) {
@@ -480,10 +485,10 @@ void CPU::INC_r(Register r) {
       H - Set if carry from bit 3.
       C - Not affected.
   */
-  uint8_t result = getRegU8(r) + 1;
+  Byte result = getRegU8(r) + 1_B;
   setRegU8(r, result);
-  registers.setFlags(Flag::Z, result == 0);
-  registers.setFlags(Flag::H, (result & 0x0FU) == 0);
+  registers.setFlags(Flag::Z, result == 0_B);
+  registers.setFlags(Flag::H, (result & 0x0F_B) == 0_B);
   registers.resetFlags(Flag::N);
 }
 
@@ -500,14 +505,14 @@ void CPU::DEC_r(Register r) {
       C - Not affected.
   */
   // TODO: Set if no borrow from bit 4.
-  uint8_t result = getRegU8(r) - 1;
+  Byte result = getRegU8(r) - 1_B;
   setRegU8(r, result);
-  registers.setFlags(Flag::Z, result == 0);
-  registers.setFlags(Flag::H, (result & 0x0FU) == 0x0FU);
+  registers.setFlags(Flag::Z, result == 0_B);
+  registers.setFlags(Flag::H, (result & 0x0F_B) == 0x0F_B);
   registers.setFlags(Flag::N);
 }
 
-auto CPU::ADD16(uint16_t n1, uint16_t n2) -> uint16_t {
+auto CPU::ADD16(Word n1, Word n2) -> Word {
   /*
   Description:
       Add n1 to n2.
@@ -520,12 +525,12 @@ auto CPU::ADD16(uint16_t n1, uint16_t n2) -> uint16_t {
   */
   io->cycle++;  // 16-Bit maths takes an extra cycle
   registers.resetFlags(Flag::N);
-  registers.setFlags(Flag::H, (n2 & 0x0FFFU) > (0x0FFFU - (n1 & 0x0FFFU)));
-  registers.setFlags(Flag::C, n2 > (0xFFFFU - n1));
+  registers.setFlags(Flag::H, (n2 & 0x0FFF_W) > (0x0FFF_W - (n1 & 0x0FFF_W)));
+  registers.setFlags(Flag::C, n2 > (0xFFFF_W - n1));
   return n1 + n2;
 }
 
-auto CPU::ADD16_SIGN(uint16_t nn, int8_t n) -> uint16_t {
+auto CPU::ADD16_SIGN(Word nn, Byte n, bool derived_from_sp) -> Word {
   /*
   Description:
       Add n to nn.
@@ -539,13 +544,12 @@ auto CPU::ADD16_SIGN(uint16_t nn, int8_t n) -> uint16_t {
   */
   io->cycle++;  // 16-Bit add takes an extra cycle
 
-  const auto usign_n = uint8_t(n);
-  registers.setFlags(Flag::H,
-                     (usign_n & 0x0FU) > (0x0FU - (registers.r16.sp & 0x0FU)));
-  registers.setFlags(Flag::C,
-                     (usign_n & 0xFFU) > (0xFFU - (registers.r16.sp & 0xFFU)));
+  Word sp = registers.getU16(Reg16::SP);
+  registers.setFlags(Flag::H, (n & 0x0F_B) > (0x0F_B - (sp.lower() & 0x0F_B)));
+  registers.setFlags(Flag::C, (n & 0xFF_B) > (0xFF_B - sp.lower()));
   registers.resetFlags(Flag::N | Flag::Z);
-  return nn + n;
+  return Word(nn.decay() + (int8_t)n.decay(),
+              {.derived_from_sp = derived_from_sp, .undefined = false});
 }
 
 void CPU::ADD16_HL_n(Register n) {
@@ -560,8 +564,8 @@ void CPU::ADD16_HL_n(Register n) {
       H - Set if carry from bit 11.
       C - Set if carry from bit 15.
   */
-  uint16_t hl_val = getRegU16(Register::HL);
-  uint16_t n_val = getRegU16(n);
+  Word hl_val = getRegU16(Register::HL);
+  Word n_val = getRegU16(n);
   setRegU16(Register::HL, ADD16(hl_val, n_val));
 }
 
@@ -578,7 +582,8 @@ void CPU::ADD16_SP_n(int8_t n) {
       C - Set or reset according to operation.
   */
   io->cycle++;  // Takes 1 additional cycles
-  registers.r16.sp = ADD16_SIGN(registers.r16.sp, n);
+  registers.sp =
+      ADD16_SIGN(registers.getU16(Reg16::SP), Byte{(uint8_t)n}, true).decay();
 }
 
 void CPU::INC16_nn(Register nn) {
@@ -591,7 +596,7 @@ void CPU::INC16_nn(Register nn) {
       None
   */
   io->cycle++;
-  setRegU16(nn, getRegU16(nn) + 1);
+  setRegU16(nn, getRegU16(nn) + 1_W);
 }
 
 void CPU::DEC16_nn(Register nn) {
@@ -604,7 +609,7 @@ void CPU::DEC16_nn(Register nn) {
       None
   */
   io->cycle++;
-  setRegU16(nn, getRegU16(nn) - 1);
+  setRegU16(nn, getRegU16(nn) - 1_W);
 }
 
 void CPU::SWAP_n(Register n) {
@@ -619,10 +624,10 @@ void CPU::SWAP_n(Register n) {
       H - Reset.
       C - Reset
   */
-  uint8_t value = getRegU8(n);
-  registers.setFlags(Flag::Z, value == 0);
+  Byte value = getRegU8(n);
+  registers.setFlags(Flag::Z, value == 0_B);
   registers.resetFlags(Flag::N | Flag::H | Flag::C);
-  setRegU8(n, ((value & 0x0FU) << 4U) | ((value & 0xF0U) >> 4U));
+  setRegU8(n, ((value & 0x0F_B) << 4U) | ((value & 0xF0_B) >> 4U));
 }
 
 void CPU::DAA() {
@@ -636,23 +641,25 @@ void CPU::DAA() {
   // Adjust differently depending on previous operation
   if (!registers.getFlags(Flag::N)) {
     // When operation was addition, adjust within range
-    bool upperAdjust = (registers.r8.a > 0x99U) || registers.getFlags(Flag::C);
-    bool lowerAdjust =
-        ((registers.r8.a & 0x0FU) > 0x09) || registers.getFlags(Flag::H);
+    uint8_t const upperAdjust =
+        ((registers.a > 0x99_B) || registers.getFlags(Flag::C)) ? 1 : 0;
+    uint8_t const lowerAdjust =
+        (((registers.a & 0x0F_B) > 0x09_B) || registers.getFlags(Flag::H)) ? 1
+                                                                           : 0;
 
-    registers.setFlags(Flag::C, upperAdjust);
-    registers.r8.a +=
-        (0x60U * uint8_t(upperAdjust)) | (0x06U * uint8_t(lowerAdjust));
+    registers.setFlags(Flag::C, upperAdjust != 0);
+    registers.a =
+        registers.a + Byte((0x60U * upperAdjust) | (0x06U * lowerAdjust));
   } else {
     // When operation was subtraction, only act on flags
-    bool upperAdjust = registers.getFlags(Flag::C);
-    bool lowerAdjust = registers.getFlags(Flag::H);
+    uint8_t const upperAdjust = registers.getFlags(Flag::C) ? 1 : 0;
+    uint8_t const lowerAdjust = registers.getFlags(Flag::H) ? 1 : 0;
 
-    registers.setFlags(Flag::C, upperAdjust);
-    registers.r8.a -=
-        (0x60U * uint8_t(upperAdjust)) | (0x06U * uint8_t(lowerAdjust));
+    registers.setFlags(Flag::C, upperAdjust != 0);
+    registers.a =
+        registers.a - Byte((0x60U * upperAdjust) | (0x06U * lowerAdjust));
   }
-  registers.setFlags(Flag::Z, registers.r8.a == 0);
+  registers.setFlags(Flag::Z, registers.a == 0_B);
   registers.resetFlags(Flag::H);
 }
 
@@ -667,7 +674,7 @@ void CPU::CPL() {
       C - Not affected.
   */
   registers.setFlags(Flag::N | Flag::H);
-  registers.r8.a = ~registers.r8.a;
+  registers.a = ~registers.a;
 }
 
 void CPU::CCF() {
@@ -737,15 +744,15 @@ void CPU::DI() {
 void CPU::EI() {
   /*
   Description:
-      Enable interrupts. This instruction enables interrupts but not immediately.
-      Interrupts are enabled after instruction after EI is executed.
+      Enable interrupts. This instruction enables interrupts but not
+  immediately. Interrupts are enabled after instruction after EI is executed.
   Flags affected:
       None.
   */
   registers.IME[2] = true;
 }
 
-auto CPU::ROT_LC(uint8_t value) -> uint8_t {
+auto CPU::ROT_LC(Byte value) -> Byte {
   /*
   Description:
       Rotate value left. Old bit 7 to Carry flag.
@@ -755,15 +762,15 @@ auto CPU::ROT_LC(uint8_t value) -> uint8_t {
       H - Reset.
       C - Contains old bit 7 data.
   */
-  uint8_t result = (value << 1U) | (value >> 7U);
+  Byte result = (value << 1U) | (value >> 7U);
 
-  registers.setFlags(Flag::C, value & 0x80);
+  registers.setFlags(Flag::C, (value & 0x80_B) != 0_B);
   registers.resetFlags(Flag::N | Flag::H);
 
   return result;
 }
 
-auto CPU::ROT_L(uint8_t value) -> uint8_t {
+auto CPU::ROT_L(Byte value) -> Byte {
   /*
   Description:
       Rotate value left through Carry flag.
@@ -773,15 +780,16 @@ auto CPU::ROT_L(uint8_t value) -> uint8_t {
       H - Reset.
       C - Contains old bit 7 data.
   */
-  uint8_t result = (value << 1U) | uint8_t(registers.getFlags(Flag::C));
+  Byte carry_bit = registers.getFlags(Flag::C) ? 1_B : 0_B;
+  Byte result = (value << 1U) | carry_bit;
 
-  registers.setFlags(Flag::C, bool(value & 0x80U));
+  registers.setFlags(Flag::C, (value & 0x80_B) != 0_B);
   registers.resetFlags(Flag::N | Flag::H);
 
   return result;
 }
 
-auto CPU::ROT_RC(uint8_t value) -> uint8_t {
+auto CPU::ROT_RC(Byte value) -> Byte {
   /*
   Description:
       Rotate value right. Old bit 0 to Carry flag.
@@ -791,15 +799,15 @@ auto CPU::ROT_RC(uint8_t value) -> uint8_t {
       H - Reset.
       C - Contains old bit 0 data
   */
-  uint8_t result = ((value & 1U) << 7U) | (value >> 1U);
+  Byte result = ((value & 1_B) << 7U) | (value >> 1U);
 
-  registers.setFlags(Flag::C, bool(value & 1U));
+  registers.setFlags(Flag::C, (value & 1_B) != 0_B);
   registers.resetFlags(Flag::N | Flag::H);
 
   return result;
 }
 
-auto CPU::ROT_R(uint8_t value) -> uint8_t {
+auto CPU::ROT_R(Byte value) -> Byte {
   /*
   Description:
       Rotate value right through Carry flag.
@@ -809,9 +817,10 @@ auto CPU::ROT_R(uint8_t value) -> uint8_t {
       H - Reset.
       C - Contains old bit 0 data
   */
-  uint8_t result = (uint8_t(registers.getFlags(Flag::C)) << 7U) | (value >> 1U);
+  Byte carry_bit = registers.getFlags(Flag::C) ? 1_B : 0_B;
+  Byte result = (carry_bit << 7U) | (value >> 1U);
 
-  registers.setFlags(Flag::C, bool(value & 1U));
+  registers.setFlags(Flag::C, (value & 1_B) != 0_B);
   registers.resetFlags(Flag::N | Flag::H);
 
   return result;
@@ -828,7 +837,7 @@ void CPU::RLCA() {
       C - Contains old bit 7 data.
   */
   registers.resetFlags(Flag::Z);
-  registers.r8.a = ROT_LC(registers.r8.a);
+  registers.a = ROT_LC(registers.a);
 }
 
 void CPU::RLA() {
@@ -842,7 +851,7 @@ void CPU::RLA() {
       C - Contains old bit 7 data
   */
   registers.resetFlags(Flag::Z);
-  registers.r8.a = ROT_L(registers.r8.a);
+  registers.a = ROT_L(registers.a);
 }
 
 void CPU::RRCA() {
@@ -856,7 +865,7 @@ void CPU::RRCA() {
       C - Contains old bit 0 data
   */
   registers.resetFlags(Flag::Z);
-  registers.r8.a = ROT_RC(registers.r8.a);
+  registers.a = ROT_RC(registers.a);
 }
 
 void CPU::RRA() {
@@ -870,7 +879,7 @@ void CPU::RRA() {
       C - Contains old bit 0 data
   */
   registers.resetFlags(Flag::Z);
-  registers.r8.a = ROT_R(registers.r8.a);
+  registers.a = ROT_R(registers.a);
 }
 
 void CPU::RLC_r(Register r) {
@@ -885,8 +894,8 @@ void CPU::RLC_r(Register r) {
       H - Reset.
       C - Contains old bit 7 data.
   */
-  uint8_t result = ROT_LC(getRegU8(r));
-  registers.setFlags(Flag::Z, result == 0);
+  Byte result = ROT_LC(getRegU8(r));
+  registers.setFlags(Flag::Z, result == 0_B);
   setRegU8(r, result);
 }
 
@@ -902,8 +911,8 @@ void CPU::RL_r(Register r) {
       H - Reset.
       C - Contains old bit 7 data.
   */
-  uint8_t result = ROT_L(getRegU8(r));
-  registers.setFlags(Flag::Z, result == 0);
+  Byte result = ROT_L(getRegU8(r));
+  registers.setFlags(Flag::Z, result == 0_B);
   setRegU8(r, result);
 }
 
@@ -919,8 +928,8 @@ void CPU::RRC_r(Register r) {
       H - Reset.
       C - Contains old bit 0 data.
   */
-  uint8_t result = ROT_RC(getRegU8(r));
-  registers.setFlags(Flag::Z, result == 0);
+  Byte result = ROT_RC(getRegU8(r));
+  registers.setFlags(Flag::Z, result == 0_B);
   setRegU8(r, result);
 }
 
@@ -936,8 +945,8 @@ void CPU::RR_r(Register r) {
       H - Reset.
       C - Contains old bit 0 data.
   */
-  uint8_t result = ROT_R(getRegU8(r));
-  registers.setFlags(Flag::Z, result == 0);
+  Byte result = ROT_R(getRegU8(r));
+  registers.setFlags(Flag::Z, result == 0_B);
   setRegU8(r, result);
 }
 
@@ -953,11 +962,11 @@ void CPU::SLA_n(Register r) {
       H - Reset.
       C - Contains old bit 7 data.
   */
-  uint8_t value = getRegU8(r);
+  Byte value = getRegU8(r);
   setRegU8(r, value << 1U);
   registers.resetFlags(Flag::N | Flag::H);
-  registers.setFlags(Flag::Z, (value & 0x7fU) == 0);
-  registers.setFlags(Flag::C, bool(value & 0x80U));
+  registers.setFlags(Flag::Z, (value & 0x7F_B) == 0_B);
+  registers.setFlags(Flag::C, (value & 0x80_B) != 0_B);
 }
 
 void CPU::SRA_n(Register r) {
@@ -972,11 +981,11 @@ void CPU::SRA_n(Register r) {
           H - Reset.
           C - Contains old bit 0 data
   */
-  uint8_t value = getRegU8(r);
-  uint8_t result = (value >> 1U) | (value & 0x80U);
+  Byte value = getRegU8(r);
+  Byte result = (value >> 1U) | (value & 0x80_B);
   registers.resetFlags(Flag::N | Flag::H);
-  registers.setFlags(Flag::Z, result == 0);
-  registers.setFlags(Flag::C, bool(value & 1U));
+  registers.setFlags(Flag::Z, result == 0_B);
+  registers.setFlags(Flag::C, (value & 1_B) != 0_B);
   setRegU8(r, result);
 }
 
@@ -992,11 +1001,11 @@ void CPU::SRL_n(Register r) {
       H - Reset.
       C - Contains old bit 0 data.
   */
-  uint8_t value = getRegU8(r);
-  uint8_t result = value >> 1U;
+  Byte value = getRegU8(r);
+  Byte result = value >> 1U;
   registers.resetFlags(Flag::N | Flag::H);
-  registers.setFlags(Flag::Z, result == 0);
-  registers.setFlags(Flag::C, bool(value & 1U));
+  registers.setFlags(Flag::Z, result == 0_B);
+  registers.setFlags(Flag::C, (value & 1_B) != 0_B);
   setRegU8(r, result);
 }
 
@@ -1012,7 +1021,7 @@ void CPU::BIT_b_r(uint8_t b, Register r) {
       H - Set.
       C - Not affected.
   */
-  registers.setFlags(Flag::Z, (getRegU8(r) & (1U << b)) == 0);
+  registers.setFlags(Flag::Z, (getRegU8(r) & (1_B << b)) == 0_B);
   registers.setFlags(Flag::H);
   registers.resetFlags(Flag::N);
 }
@@ -1026,7 +1035,7 @@ void CPU::SET_b_r(uint8_t b, Register r) {
   Flags affected:
       None
   */
-  setRegU8(r, getRegU8(r) | (1U << b));
+  setRegU8(r, getRegU8(r) | (1_B << b));
 }
 
 void CPU::RES_b_r(uint8_t b, Register r) {
@@ -1038,7 +1047,7 @@ void CPU::RES_b_r(uint8_t b, Register r) {
   Flags affected:
       None
   */
-  setRegU8(r, getRegU8(r) & ~(1U << b));
+  setRegU8(r, getRegU8(r) & ~(1_B << b));
 }
 
 void CPU::JP_nn(uint16_t nn) {
@@ -1049,7 +1058,7 @@ void CPU::JP_nn(uint16_t nn) {
       nn = two byte immediate value. (LS byte first.)
   */
   io->cycle++;  // Jumping takes 1 cycle
-  registers.r16.pc = nn;
+  registers.pc = nn;
 }
 
 void CPU::JP_cc_nn(Flag f, bool set, uint16_t nn) {
@@ -1074,7 +1083,7 @@ void CPU::JP_HL() {
       Jump to address contained in HL
   */
   // Dont use JP function here since HL jump is free (0 cycles)
-  registers.r16.pc = getRegU16(Register::HL);
+  registers.pc = getRegU16(Register::HL).decay();
 }
 
 void CPU::JR_n(int8_t n) {
@@ -1084,7 +1093,7 @@ void CPU::JR_n(int8_t n) {
   Use with:
       n = one byte signed immediate value
   */
-  JP_nn(registers.r16.pc + n);
+  JP_nn(registers.pc + n);
 }
 
 void CPU::JR_cc_n(Flag f, bool set, int8_t n) {
@@ -1095,7 +1104,7 @@ void CPU::JR_cc_n(Flag f, bool set, int8_t n) {
   reset. cc = Z,  Jump if Z flag is set. cc = NC, Jump if C flag is reset. cc =
   C,  Jump if C flag is set.
   */
-  JP_cc_nn(f, set, registers.r16.pc + n);
+  JP_cc_nn(f, set, registers.pc + n);
 }
 
 void CPU::CALL_nn(uint16_t nn) {
@@ -1107,7 +1116,7 @@ void CPU::CALL_nn(uint16_t nn) {
   */
   PUSH(Register::PC);
   // Don't call JP_nn, the jump should take 0 cycles
-  registers.r16.pc = nn;
+  registers.pc = nn;
 }
 
 void CPU::CALL_cc_nn(Flag f, bool set, uint16_t nn) {
@@ -1136,7 +1145,7 @@ void CPU::RST_n(uint8_t n) {
   */
   PUSH(Register::PC);
   // Don't call JP_nn, the jump should take 0 cycles
-  registers.r16.pc = n;
+  registers.pc = n;
 }
 
 void CPU::RET() {
@@ -1144,9 +1153,9 @@ void CPU::RET() {
   Description:
       Pop two bytes from stack & jump to that address
   */
-  uint16_t addr = readU16(registers.r16.sp);
-  registers.r16.sp += 2;
-  JP_nn(addr);
+  Word addr = readU16(registers.sp);
+  registers.sp += 2;
+  JP_nn(addr.decay());
 }
 
 void CPU::RET_cc(Flag f, bool set) {

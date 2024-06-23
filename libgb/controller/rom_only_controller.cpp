@@ -13,19 +13,19 @@ class RomOnlyController : public Controller {
  public:
   explicit RomOnlyController(std::span<uint8_t> rom) : rom{rom} {}
 
-  [[nodiscard]] auto read(uint16_t addr) const -> uint8_t final {
+  [[nodiscard]] auto read(uint16_t addr) const -> Byte final {
     if (addr < rom.size()) {
-      return rom[addr];
+      return Byte{rom[addr]};
     }
-    return 0;  // Implicit zero pad
+    return 0_B;  // Implicit zero pad
   }
 
-  auto write(uint16_t addr, uint8_t value) -> void final {
+  auto write(uint16_t addr, Byte value) -> void final {
     // ROM should just ignore write errors
     // Some games write to the controller even if there's just ROM
     // Print message for debugging anyway
     std::cerr << std::hex << "ROM write requested! Addr: " << addr
-              << " Value: " << (int)value << std::endl;
+              << " Value: " << (int)value.decay() << std::endl;
   }
 };
 

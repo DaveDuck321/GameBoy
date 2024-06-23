@@ -15,4 +15,19 @@ class BadOpcode : public std::runtime_error {
   explicit BadOpcode(const std::string& msg) : std::runtime_error(msg) {}
 };
 
+class Trap : public BadOpcode {
+ public:
+  using BadOpcode::BadOpcode;
+};
+
+class CorrectnessError : public std::runtime_error {
+ public:
+  explicit CorrectnessError(const std::string& msg) : std::runtime_error(msg) {}
+};
+
+class UndefinedDataError : public CorrectnessError {
+ public:
+  using CorrectnessError::CorrectnessError;
+};
+
 }  // namespace gb

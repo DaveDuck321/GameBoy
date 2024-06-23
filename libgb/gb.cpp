@@ -13,14 +13,12 @@ GB::GB(std::string_view rom_file, std::unique_ptr<IOFrontend> io_frontend)
       memory_map(cartridge, io),
       cpu(memory_map, io) {}
 
-auto GB::readU8(uint16_t addr) const -> uint8_t {
+auto GB::readU8(uint16_t addr) const -> Byte {
   return memory_map.read(addr);
 }
 
-auto GB::readU16(uint16_t addr) const -> uint16_t {
-  uint8_t lower = memory_map.read(addr);
-  uint8_t upper = memory_map.read(addr + 1);
-  return (upper << 8U) + lower;
+auto GB::readU16(uint16_t addr) const -> Word {
+  return {memory_map.read(addr + 1), memory_map.read(addr)};
 }
 
 auto GB::getRegisters() -> CPURegisters& {
@@ -29,6 +27,12 @@ auto GB::getRegisters() -> CPURegisters& {
 
 auto GB::isSimulationFinished() -> bool {
   return io.isSimulationFinished();
+}
+
+auto GB::reset() -> void {
+  io.reset();
+  memory_map.reset();
+  cpu.reset();
 }
 
 auto GB::clock() -> void {
