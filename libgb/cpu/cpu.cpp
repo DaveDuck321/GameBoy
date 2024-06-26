@@ -22,6 +22,12 @@ auto CPU::readU8(uint16_t addr, bool allow_undef) -> Byte {
   if (not allow_undef && result.flags.undefined) {
     throw UndefinedDataError("Read returned undefined memory");
   }
+  if (std::ranges::contains(return_address_pointers, addr)) {
+    throw ReadingReturnAddressError(std::format(
+        "Attempting to read a stack address corresponding to the return "
+        "pointer @ {:#06x}",
+        addr));
+  }
   return result;
 }
 

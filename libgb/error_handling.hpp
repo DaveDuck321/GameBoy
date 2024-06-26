@@ -40,4 +40,9 @@ class ClobberedReturnAddressError : public CorrectnessError {
   using CorrectnessError::CorrectnessError;
 };
 
+class ReadingReturnAddressError : public CorrectnessError {
+ public:
+  using CorrectnessError::CorrectnessError;
+};
+
 }  // namespace gb
