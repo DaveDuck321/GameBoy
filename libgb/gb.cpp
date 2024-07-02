@@ -1,9 +1,14 @@
 #include "gb.hpp"
+#include "cartridge.hpp"
+#include "error_handling.hpp"
 
+#include <cstddef>
 #include <cstdint>
+#include <format>
+#include <iostream>
 #include <memory>
 #include <string_view>
-#include "cartridge.hpp"
+#include <type_traits>
 
 using namespace gb;
 
@@ -52,10 +57,29 @@ auto GB::insertInterruptOnNextCycle(uint8_t) -> void {
   // TODO
 }
 
-auto gb::run_standalone(std::unique_ptr<gb::IOFrontend> frontend,
-                        std::string_view rom_path) -> void {
-  auto gb = std::make_unique<gb::GB>(rom_path, std::move(frontend));
-  while (not gb->isSimulationFinished()) {
-    gb->clock();
+auto gb::run_standalone(gb::GB& gameboy) -> void {
+  auto print_reg = []<typename T>(std::string_view reg, T value) {
+    if (value.flags.undefined) {
+      std::cout << std::format("{}=XX\n", reg);
+    } else if (std::is_same_v<T, Byte>) {
+      std::cout << std::format("{}={:02x}\n", reg, value.decay());
+    } else {
+      std::cout << std::format("{}={:04x}\n", reg, value.decay());
+    }
+  };
+
+  while (not gameboy.isSimulationFinished()) {
+    try {
+      gameboy.clock();
+    } catch (const DebugTrap&) {
+      std::cout << "Debug trap!" << std::endl;
+      print_reg("a", gameboy.getCurrentRegisters().a);
+      print_reg("f", gameboy.getCurrentRegisters()._f);
+      print_reg("hl", gameboy.getCurrentRegisters().getU16(Reg16::HL));
+      print_reg("b", gameboy.getCurrentRegisters().b);
+      print_reg("c", gameboy.getCurrentRegisters().c);
+      print_reg("d", gameboy.getCurrentRegisters().d);
+      print_reg("e", gameboy.getCurrentRegisters().e);
+    }
   }
 }

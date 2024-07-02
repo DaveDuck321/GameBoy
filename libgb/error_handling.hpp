@@ -20,6 +20,11 @@ class Trap : public BadOpcode {
   using BadOpcode::BadOpcode;
 };
 
+class DebugTrap : public Trap {
+ public:
+  using Trap::Trap;
+};
+
 class CorrectnessError : public std::runtime_error {
  public:
   explicit CorrectnessError(const std::string& msg) : std::runtime_error(msg) {}

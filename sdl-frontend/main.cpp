@@ -62,6 +62,7 @@ auto main(int argc, char** argv) -> int {
     if (not rom.has_value()) {
       throw std::runtime_error("Argument error: missing position argument ROM");
     }
-    gb::run_standalone(std::move(frontend), *rom);
+    auto gameboy = std::make_unique<gb::GB>(rom.value(), std::move(frontend));
+    gb::run_standalone(*gameboy);
   }
 }

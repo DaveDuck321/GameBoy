@@ -44,8 +44,10 @@ class GB {
   auto insertInterruptOnNextCycle(uint8_t id) -> void;
 };
 
-auto run_standalone(std::unique_ptr<gb::IOFrontend>, std::string_view rom_path)
-    -> void;
+auto load_from_elf(std::unique_ptr<gb::IOFrontend>, std::string_view elf_path)
+    -> std::unique_ptr<gb::GB>;
+
+auto run_standalone(gb::GB&) -> void;
 
 auto run_gdb_server(uint16_t port,
                     std::unique_ptr<gb::IOFrontend>,

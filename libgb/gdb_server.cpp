@@ -1,4 +1,3 @@
-#include <utility>
 #ifndef __unix__
 
 #include "io/frontend.hpp"
@@ -10,10 +9,15 @@
 
 using namespace gb;
 
-auto run_gdb_server(uint16_t,
-                    std::unique_ptr<IOFrontend>,
-                    std::optional<std::string_view>) -> void {
+auto gb::run_gdb_server(uint16_t,
+                        std::unique_ptr<IOFrontend>,
+                        std::optional<std::string_view>) -> void {
   throw std::runtime_error("GDB server mode is not supported.");
+}
+
+auto gb::load_from_elf(std::unique_ptr<gb::IOFrontend> frontend,
+                       std::string_view elf_path) -> std::unique_ptr<gb::GB> {
+  throw std::runtime_error("Toolchain integration is not supported.");
 }
 
 #else
@@ -34,6 +38,7 @@ auto run_gdb_server(uint16_t,
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace gb;
@@ -46,6 +51,23 @@ auto run_command(std::string cmd) -> void {
   }
 }
 }  // namespace
+
+auto gb::load_from_elf(std::unique_ptr<gb::IOFrontend> frontend,
+                       std::string_view elf_path) -> std::unique_ptr<gb::GB> {
+  // Use the toolchain to convert the ELF into a cartridge ROM
+  std::string toolchain_prefix;
+  if (const auto* toolchain_env = std::getenv("GB_TOOLCHAIN_BIN");
+      toolchain_env != nullptr) {
+    toolchain_prefix = std::string(toolchain_env) + "/";
+  }
+
+  auto* tmp_name = std::tmpnam(nullptr);
+  run_command(std::format("{}llvm-objcopy -O binary {} {} --gap-fill 0",
+                          toolchain_prefix, elf_path, tmp_name));
+
+  // Load the emulator with the new rom file
+  return std::make_unique<GB>(tmp_name, std::move(frontend));
+}
 
 void gb::run_gdb_server(uint16_t port,
                         std::unique_ptr<IOFrontend> frontend,
@@ -88,19 +110,7 @@ void gb::run_gdb_server(uint16_t port,
 
   server.add_run_elf_callback([&](std::string_view elf) {
     std::cout << "Loading rom from elf: " << elf << std::endl;
-
-    // Use the toolchain to convert the ELF into a cartridge ROM
-    std::string toolchain_prefix;
-    if (const auto* toolchain_env = std::getenv("GB_TOOLCHAIN_BIN");
-        toolchain_env != nullptr) {
-      toolchain_prefix = std::string(toolchain_env) + "/";
-    }
-
-    run_command(std::format("{}llvm-objcopy -O binary {} out.rom --gap-fill 0",
-                            toolchain_prefix, elf));
-
-    // Load the emulator
-    gb = std::make_unique<GB>("out.rom", std::move(frontend));
+    gb = gb::load_from_elf(std::move(frontend), elf);
   });
   server.add_is_attached_callback([&] { return gb != nullptr; });
   server.add_do_continue_callback([&](std::optional<size_t> addr) {

@@ -479,6 +479,9 @@ auto CPU::processNextInstruction() -> void {
 
     case 0xD3:
       throw Trap{std::format("Trap executed @ {:#06x}", registers.pc)};
+    case 0xE3:
+      throw DebugTrap(
+          std::format("Debug trap executed @ {:#06x}", registers.pc));
     default:
       throw BadOpcode(
           std::format("Bad opcode {:#04x} @ {:#06x}", opcode, registers.pc));
