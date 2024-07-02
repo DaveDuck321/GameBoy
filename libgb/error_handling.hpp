@@ -30,6 +30,11 @@ class UndefinedDataError : public CorrectnessError {
   using CorrectnessError::CorrectnessError;
 };
 
+class BadReadError : public CorrectnessError {
+ public:
+  using CorrectnessError::CorrectnessError;
+};
+
 class CallFrameViolationError : public CorrectnessError {
  public:
   using CorrectnessError::CorrectnessError;

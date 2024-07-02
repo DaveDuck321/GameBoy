@@ -1,7 +1,8 @@
+#include "../error_handling.hpp"
 #include "controller.hpp"
 
 #include <cstdint>
-#include <iostream>
+#include <format>
 #include <memory>
 #include <span>
 
@@ -21,11 +22,11 @@ class RomOnlyController : public Controller {
   }
 
   auto write(uint16_t addr, Byte value) -> void final {
-    // ROM should just ignore write errors
+    // ROM should just ignore write errors (when UBSAN is off)
     // Some games write to the controller even if there's just ROM
-    // Print message for debugging anyway
-    std::cerr << std::hex << "ROM write requested! Addr: " << addr
-              << " Value: " << (int)value.decay() << std::endl;
+    throw BadReadError(
+        std::format("Attempt to write {:#04x} to read-only address @ {:#06x}",
+                    value.decay(), addr));
   }
 };
 
