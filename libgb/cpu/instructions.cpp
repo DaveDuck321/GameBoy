@@ -1164,14 +1164,14 @@ void CPU::RET() {
   uint16_t expected_sp = pop_back(return_address_pointers);
   assert(pop_back(return_address_pointers) == expected_sp + 1);
 
-  uint16_t expected_addr = pop_back(expected_return_addresses);
-  uint16_t actual_addr = readU16(registers.sp).decay();
-
   if (expected_sp != registers.sp) {
     throw CallFrameViolationError(
         "Returning from a stack pointer that does not correspond to the last "
         "call instruction.");
   }
+
+  uint16_t expected_addr = pop_back(expected_return_addresses);
+  uint16_t actual_addr = readU16(registers.sp).decay();
 
   if (expected_addr != actual_addr) {
     throw ClobberedReturnAddressError(
