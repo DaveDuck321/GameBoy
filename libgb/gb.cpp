@@ -68,11 +68,15 @@ auto gb::run_standalone(gb::GB& gameboy) -> void {
     }
   };
 
+  size_t last_debug_trap = 0;
   while (not gameboy.isSimulationFinished()) {
     try {
       gameboy.clock();
     } catch (const DebugTrap&) {
+      size_t cycles_since_last = gameboy.io.cycle - last_debug_trap;
+
       std::cout << "Debug trap!" << std::endl;
+      std::cout << "Cycles since last: " << cycles_since_last << std::endl;
       print_reg("a", gameboy.getCurrentRegisters().a);
       print_reg("f", gameboy.getCurrentRegisters()._f);
       print_reg("hl", gameboy.getCurrentRegisters().getU16(Reg16::HL));
@@ -80,6 +84,8 @@ auto gb::run_standalone(gb::GB& gameboy) -> void {
       print_reg("c", gameboy.getCurrentRegisters().c);
       print_reg("d", gameboy.getCurrentRegisters().d);
       print_reg("e", gameboy.getCurrentRegisters().e);
+
+      last_debug_trap = gameboy.io.cycle;
     }
   }
 }
