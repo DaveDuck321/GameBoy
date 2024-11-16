@@ -1156,27 +1156,36 @@ void CPU::RET() {
   */
 
   auto pop_back = []<typename T>(std::vector<T>& vec) -> T {
+    if (vec.size() == 0) {
+      return 0;
+    }
     auto result = vec.back();
     vec.pop_back();
     return result;
   };
 
   uint16_t expected_sp = pop_back(return_address_pointers);
-  assert(pop_back(return_address_pointers) == expected_sp + 1);
+  uint16_t expected_sp_plus_1 = pop_back(return_address_pointers);
+  assert(expected_sp_plus_1 == expected_sp + 1 ||
+         (expected_sp == 0 && expected_sp_plus_1 == 0));
 
   if (expected_sp != registers.sp) {
-    throw CallFrameViolationError(
-        "Returning from a stack pointer that does not correspond to the last "
-        "call instruction.");
+    throw_error([&] {
+      return CallFrameViolationError(
+          "Returning from a stack pointer that does not correspond to the last "
+          "call instruction.");
+    });
   }
 
   uint16_t expected_addr = pop_back(expected_return_addresses);
   uint16_t actual_addr = readU16(registers.sp).decay();
 
   if (expected_addr != actual_addr) {
-    throw ClobberedReturnAddressError(
-        "Returning from the correct stack pointer but the value has been "
-        "clobbered since the last call.");
+    throw_error([&] {
+      return ClobberedReturnAddressError(
+          "Returning from the correct stack pointer but the value has been "
+          "clobbered since the last call.");
+    });
   }
 
   registers.sp += 2;

@@ -52,8 +52,11 @@ class MBC1 : public Controller {
         return ram.at((0x2000 * ramBank) + bankOffset);
       }
       default:
-        throw IllegalMemoryRead(
-            std::format("Cannot read ROM address {:#04x}", addr));
+        throw_error([&] {
+          return IllegalMemoryAddress(
+              std::format("Cannot read ROM address {:#06x}", addr));
+        });
+        return {};
     }
   }
 
@@ -106,7 +109,11 @@ class MBC1 : public Controller {
       }
 
       default:
-        throw std::runtime_error("Cannot write to ROM");
+        throw_error([&] {
+          return IllegalMemoryAddress(
+              std::format("Cannot write to ROM address {:#06x}", addr));
+        });
+        break;
     }
   }
 };

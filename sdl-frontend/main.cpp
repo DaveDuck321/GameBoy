@@ -19,12 +19,20 @@ auto main(int argc, char** argv) -> int {
   std::optional<uint16_t> port;
   std::optional<std::string_view> rom;
   bool is_gui = false;
+  bool permissive = false;
 
   // Headless is a flag
   if (auto gui_flag = std::ranges::find(args, std::string_view{"--gui"});
       gui_flag != args.end()) {
     is_gui = true;
     args.erase(gui_flag);
+  }
+
+  if (auto permissive_flag =
+          std::ranges::find(args, std::string_view{"--permissive"});
+      permissive_flag != args.end()) {
+    permissive = true;
+    args.erase(permissive_flag);
   }
 
   // Listen is named and implies gdb server mode
@@ -45,6 +53,19 @@ auto main(int argc, char** argv) -> int {
   if (not args.empty()) {
     throw std::runtime_error(
         std::format("Argument error: unrecognized argument '{}'", args[0]));
+  }
+
+  if (permissive) {
+    for (const auto& kind : {
+             gb::ErrorKind::illegal_memory_address,
+             gb::ErrorKind::illegal_memory_write,
+             gb::ErrorKind::undefined_data,
+             gb::ErrorKind::call_frame_violation,
+             gb::ErrorKind::clobbered_return_address,
+             gb::ErrorKind::reading_return_address,
+         }) {
+      gb::permit_error_kind(kind);
+    }
   }
 
   // Initialize the gui

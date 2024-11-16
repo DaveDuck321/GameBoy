@@ -56,7 +56,11 @@ void MemoryMap::reset() {
 
 void MemoryMap::DMA(uint8_t srcUpper) {
   if (srcUpper > 0xF1U) {
-    throw std::runtime_error("Invalid address for DMA Transfer!");
+    throw_error([&] {
+      return IllegalMemoryAddress(std::format(
+          "Invalid upper address for DMA Transfer {:#06x}", srcUpper));
+    });
+    return;
   }
 
   for (uint16_t offset = 0; offset < 0xA0U; offset++) {
@@ -88,8 +92,11 @@ auto MemoryMap::read(uint16_t addr) const -> Byte {
       return Byte{io->videoRead(addr)};
     case 0xFEA0 ... 0xFEFF:
       // Not Usable
-      throw IllegalMemoryRead(
-          std::format("Unusable ram address {:#06x}", addr));
+      throw_error([&] {
+        return IllegalMemoryAddress(
+            std::format("Unusable memory address {:#06x}", addr));
+      });
+      return {};
     case 0xFF00 ... 0xFF7F:
       // IO ports
       return Byte{io->ioRead(addr)};
@@ -100,7 +107,11 @@ auto MemoryMap::read(uint16_t addr) const -> Byte {
       // Interrupts enabled Register
       return stack[0x7F];
     default:
-      throw IllegalMemoryRead(std::format("Bad ram address {:#06x}", addr));
+      throw_error([&] {
+        return IllegalMemoryAddress(
+            std::format("Bad memory address {:#06x}", addr));
+      });
+      return {};
   }
 }
 
@@ -152,6 +163,10 @@ auto MemoryMap::write(uint16_t addr, Byte value) -> void {
       stack[0x7F] = value;
       break;
     default:
-      throw std::runtime_error("Impossible memory address");
+      throw_error([&] {
+        return IllegalMemoryAddress(
+            std::format("Bad memory address {:#06x}", addr));
+      });
+      break;
   }
 }

@@ -24,9 +24,11 @@ class RomOnlyController : public Controller {
   auto write(uint16_t addr, Byte value) -> void final {
     // ROM should just ignore write errors (when UBSAN is off)
     // Some games write to the controller even if there's just ROM
-    throw BadReadError(
-        std::format("Attempt to write {:#04x} to read-only address @ {:#06x}",
-                    value.decay(), addr));
+    throw_error([&] {
+      return IllegalMemoryWrite(
+          std::format("Attempt to write {:#04x} to read-only address @ {:#06x}",
+                      value.decay(), addr));
+    });
   }
 };
 

@@ -20,13 +20,18 @@ auto CPU::readU8(uint16_t addr, bool allow_undef) -> Byte {
   io->cycle++;  // Under normal circumstances a read takes 1 cycle
   Byte result = memory_map->read(addr);
   if (not allow_undef && result.flags.undefined) {
-    throw UndefinedDataError("Read returned undefined memory");
+    throw_error([&] {
+      return UndefinedDataError(
+          std::format("Read of {:#06x} returned undefined memory", addr));
+    });
   }
   if (std::ranges::contains(return_address_pointers, addr)) {
-    throw ReadingReturnAddressError(std::format(
-        "Attempting to read a stack address corresponding to the return "
-        "pointer @ {:#06x}",
-        addr));
+    throw_error([&] {
+      return ReadingReturnAddressError(std::format(
+          "Attempting to read a stack address corresponding to the return "
+          "pointer @ {:#06x}",
+          addr));
+    });
   }
   return result;
 }
@@ -37,11 +42,17 @@ auto CPU::readU16(uint16_t addr, bool allow_partial_undef) -> Word {
                  readU8(addr, allow_partial_undef)};
   if (allow_partial_undef) {
     if (result.low_undefined && result.high_undefined) {
-      throw UndefinedDataError("Read returned undefined memory");
+      throw_error([&] {
+        return UndefinedDataError(
+            std::format("Read of {:#06x} returned undefined memory", addr));
+      });
     }
   } else {
     if (result.flags.undefined) {
-      throw UndefinedDataError("Read returned undefined memory");
+      throw_error([&] {
+        return UndefinedDataError(
+            std::format("Read of {:#06x} returned undefined memory", addr));
+      });
     }
   }
   return result;
@@ -51,27 +62,36 @@ auto CPU::writeU8(uint16_t addr, Byte value, bool allow_undef) -> void {
   // Writes an 8-Bit value to 'addr'
   io->cycle++;  // Under normal circumstances a write takes 1 cycle
   if (not allow_undef && value.flags.undefined) {
-    throw UndefinedDataError("Attempting to write undefined into memory");
+    throw_error([&] {
+      return UndefinedDataError("Attempting to write undefined into memory");
+    });
   }
   if (std::ranges::contains(return_address_pointers, addr)) {
-    throw ClobberedReturnAddressError(std::format(
-        "Attempting to clobber a stack address corresponding to the return "
-        "pointer @ {:#06x}",
-        addr));
+    throw_error([&] {
+      return ClobberedReturnAddressError(std::format(
+          "Attempting to clobber a stack address corresponding to the return "
+          "pointer @ {:#06x}",
+          addr));
+    });
   }
   memory_map->write(addr, value);
 }
 
-auto CPU::writeU16(uint16_t addr, Word value, bool allow_partial_undef)
-    -> void {
+auto CPU::writeU16(uint16_t addr,
+                   Word value,
+                   bool allow_partial_undef) -> void {
   // Writes a 16-Bit LE value to 'addr'
   if (allow_partial_undef) {
     if (value.low_undefined && value.high_undefined) {
-      throw UndefinedDataError("Attempting to write undefined into memory");
+      throw_error([&] {
+        return UndefinedDataError("Attempting to write undefined into memory");
+      });
     }
   } else {
     if (value.flags.undefined) {
-      throw UndefinedDataError("Attempting to write undefined into memory");
+      throw_error([&] {
+        return UndefinedDataError("Attempting to write undefined into memory");
+      });
     }
   }
   writeU8(addr, value.lower(), allow_partial_undef);

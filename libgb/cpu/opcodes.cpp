@@ -367,8 +367,11 @@ auto CPU::processNextInstruction() -> void {
           SET_b_r((arg - 0xC0U) >> 3U, registerOpcodes[arg % 0x08]);
           break;
         default:
-          throw BadOpcode(
-              std::format("Bad opcode {:#02x}{:#02x}", opcode, arg));
+          throw_error([&] {
+            return BadOpcode(
+                std::format("Bad opcode {:#02x}{:#02x}", opcode, arg));
+          });
+          break;
       }
       break;
     }
@@ -478,12 +481,20 @@ auto CPU::processNextInstruction() -> void {
       break;
 
     case 0xD3:
-      throw Trap{std::format("Trap executed @ {:#06x}", registers.pc)};
+      throw_error([&] {
+        return Trap{std::format("Trap executed @ {:#06x}", registers.pc)};
+      });
+      break;
     case 0xE3:
-      throw DebugTrap(
-          std::format("Debug trap executed @ {:#06x}", registers.pc));
+      throw_error([&] {
+        return DebugTrap{
+            std::format("DebugTrap executed @ {:#06x}", registers.pc)};
+      });
+      break;
     default:
-      throw BadOpcode(
-          std::format("Bad opcode {:#04x} @ {:#06x}", opcode, registers.pc));
+      throw_error([&] {
+        return BadOpcode{
+            std::format("Bad opcode {:#04x} @ {:#06x}", opcode, registers.pc)};
+      });
   }
 }

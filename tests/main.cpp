@@ -1,12 +1,11 @@
 #include "libgb/cartridge.hpp"
+#include "libgb/error_handling.hpp"
 #include "libgb/gb.hpp"
 #include "libgb/io/headless.hpp"
 
 #include <chrono>
-#include <iomanip>
-#include <memory>
+#include <iostream>
 #include <sstream>
-#include <string>
 
 const uint64_t FREQUENCY = 1048576UL;  // 4.194 MHz
 const double FRAMETIME = 1.0 / 59.7;   // 59.7 Hz
@@ -158,6 +157,9 @@ void runBenchmarkHeadless(const char* rom, uint64_t updates) {
 // }
 
 int main(int argc, char* argv[]) {
+  gb::permit_error_kind(gb::ErrorKind::call_frame_violation);
+  gb::permit_error_kind(gb::ErrorKind::clobbered_return_address);
+  gb::permit_error_kind(gb::ErrorKind::reading_return_address);
   switch (argc) {
     case 1:
       // Test mode

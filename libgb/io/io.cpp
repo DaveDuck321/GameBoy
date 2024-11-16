@@ -67,9 +67,11 @@ auto IO::ioRead(uint16_t addr) -> uint8_t {
     case 0xFF46:
       // DMA - DMA Transfer and Start Address (W)
       // DMA reads are never allowed
-      // There's probably an error somewhere else so throw
-      throw IllegalMemoryRead(
-          std::format("DMA read (@ {:#06x}) not permitted!", addr));
+      throw_error([&] {
+        return IllegalMemoryAddress(
+            std::format("DMA read (@ {:#06x}) not permitted!", addr));
+      });
+      return 0;
 
     // Sound
     case 0xFF10:

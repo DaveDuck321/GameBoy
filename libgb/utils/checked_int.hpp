@@ -27,7 +27,9 @@ struct CheckedInt {
 
   [[nodiscard]] constexpr auto decay() const -> Underlying {
     if (flags.undefined) {
-      throw UndefinedDataError("Attempt to decay undefined byte");
+      throw_error([&] {
+        return UndefinedDataError("Attempt to decay undefined byte");
+      });
     }
     return data;
   }
@@ -39,7 +41,8 @@ struct CheckedInt {
 
   [[nodiscard]] constexpr auto operator+(Decorated other) const -> Decorated {
     if (flags.undefined || other.flags.undefined) {
-      throw UndefinedDataError("Attempt to add undefined byte");
+      throw_error(
+          [&] { return UndefinedDataError("Attempt to add undefined byte"); });
     }
     bool derived_from_sp = flags.derived_from_sp || other.flags.derived_from_sp;
     return {static_cast<Underlying>(data + other.data),
@@ -51,7 +54,8 @@ struct CheckedInt {
 
   [[nodiscard]] constexpr auto operator-(Decorated other) const -> Decorated {
     if (flags.undefined || other.flags.undefined) {
-      throw UndefinedDataError("Attempt to sub undefined byte");
+      throw_error(
+          [&] { return UndefinedDataError("Attempt to sub undefined byte"); });
     }
     bool derived_from_sp = flags.derived_from_sp || other.flags.derived_from_sp;
     return {static_cast<Underlying>(data - other.data),
@@ -63,7 +67,8 @@ struct CheckedInt {
 
   [[nodiscard]] constexpr auto operator|(Decorated other) const -> Decorated {
     if (flags.undefined || other.flags.undefined) {
-      throw UndefinedDataError("Attempt to or undefined byte");
+      throw_error(
+          [&] { return UndefinedDataError("Attempt to or undefined byte"); });
     }
     bool derived_from_sp = flags.derived_from_sp || other.flags.derived_from_sp;
     return {static_cast<Underlying>(data | other.data),
@@ -81,7 +86,8 @@ struct CheckedInt {
         (not other.flags.undefined && not flags.undefined);
 
     if (not is_well_defined) {
-      throw UndefinedDataError("Attempt to and undefined byte");
+      throw_error(
+          [&] { return UndefinedDataError("Attempt to and undefined byte"); });
     }
     bool derived_from_sp = flags.derived_from_sp || other.flags.derived_from_sp;
     return {static_cast<Underlying>(data & other.data),
@@ -93,7 +99,8 @@ struct CheckedInt {
 
   [[nodiscard]] constexpr auto operator^(Decorated other) const -> Decorated {
     if (flags.undefined || other.flags.undefined) {
-      throw UndefinedDataError("Attempt to xor undefined byte");
+      throw_error(
+          [&] { return UndefinedDataError("Attempt to xor undefined byte"); });
     }
     bool derived_from_sp = flags.derived_from_sp || other.flags.derived_from_sp;
     return {static_cast<Underlying>(data ^ other.data),
@@ -105,7 +112,9 @@ struct CheckedInt {
 
   [[nodiscard]] constexpr auto operator~() const -> Decorated {
     if (flags.undefined) {
-      throw UndefinedDataError("Attempt to negate undefined byte");
+      throw_error([&] {
+        return UndefinedDataError("Attempt to negate undefined byte");
+      });
     }
     return {static_cast<Underlying>(~data),
             Flags{
@@ -116,7 +125,9 @@ struct CheckedInt {
 
   [[nodiscard]] constexpr auto operator>>(size_t amount) const -> Decorated {
     if (flags.undefined) {
-      throw UndefinedDataError("Attempt to rshift undefined byte");
+      throw_error([&] {
+        return UndefinedDataError("Attempt to rshift undefined byte");
+      });
     }
     return {static_cast<Underlying>(data >> amount),
             Flags{
@@ -127,7 +138,9 @@ struct CheckedInt {
 
   [[nodiscard]] constexpr auto operator<<(size_t amount) const -> Decorated {
     if (flags.undefined) {
-      throw UndefinedDataError("Attempt to lshift undefined byte");
+      throw_error([&] {
+        return UndefinedDataError("Attempt to lshift undefined byte");
+      });
     }
     return {static_cast<Underlying>(data << amount),
             Flags{
@@ -144,7 +157,9 @@ struct CheckedInt {
   [[nodiscard]] constexpr auto operator<=>(const CheckedInt& other) const
       -> std::strong_ordering {
     if (flags.undefined || other.flags.undefined) {
-      throw UndefinedDataError("Attempt to compare undefined byte");
+      throw_error([&] {
+        return UndefinedDataError("Attempt to compare undefined byte");
+      });
     }
     return data <=> other.data;
   }

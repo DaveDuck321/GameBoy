@@ -91,7 +91,7 @@ void gb::run_gdb_server(uint16_t port,
 
       try {
         result.push_back(gb->readU8((uint16_t)(addr + offset)).decay_or(0xde));
-      } catch (const IllegalMemoryRead&) {
+      } catch (const IllegalMemoryAddress&) {
         // GDB misbehaves, just eat the error since it doesn't understand our
         // address space.
         result.push_back(0);
