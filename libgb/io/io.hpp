@@ -1,5 +1,6 @@
 #pragma once
 
+#include "apu.hpp"
 #include "frontend.hpp"
 #include "gpu.hpp"
 
@@ -27,6 +28,7 @@ class IO {
   // IO memory (not including video RAM)
   std::array<uint8_t, 0x80> memory = {};
   GPU gpu;
+  APU apu;
 
   std::unique_ptr<IOFrontend> frontend;
 
@@ -40,7 +42,9 @@ class IO {
   uint64_t cycle = 0;
 
   explicit IO(std::unique_ptr<IOFrontend> frontend)
-      : gpu(memory), frontend(std::move(frontend)) {}
+      : gpu(memory),
+        apu(memory, frontend->get_approx_audio_sample_freq()),
+        frontend(std::move(frontend)) {}
 
   auto reset() -> void;
 
@@ -52,9 +56,6 @@ class IO {
 
   auto isSimulationFinished() -> bool;
   auto update() -> void;
-
-  auto powerUpAPU() -> void;
-  auto powerDownAPU() -> void;
 
  private:
   auto updateTimers() -> void;

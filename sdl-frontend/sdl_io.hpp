@@ -4,15 +4,16 @@
 #include "../libgb/io/frontend.hpp"
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_audio.h>
 #include <SDL2/SDL_render.h>
 #include <array>
 #include <atomic>
-#include <chrono>
 #include <condition_variable>
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
 #include <queue>
+#include <vector>
 
 class SDLFrontend : public gb::IOFrontend {
   std::thread m_render_thread;
@@ -20,6 +21,7 @@ class SDLFrontend : public gb::IOFrontend {
   // Rendering
   SDL_Window* m_window = nullptr;
   SDL_Renderer* m_renderer = nullptr;
+  SDL_AudioDeviceID m_audio_device = 0;
   size_t m_live_texture = 0;
   std::array<SDL_Texture*, 2> m_textures = {nullptr, nullptr};
 
@@ -29,6 +31,23 @@ class SDLFrontend : public gb::IOFrontend {
   uint32_t* m_data_to_render = nullptr;
   int m_render_stride = 0;
   bool m_current_frame_is_visible = true;
+
+  size_t m_audio_sample_frequency = 0;
+
+  // State for the highpass/ lowpass iir
+  struct IIRFilter {
+    double last_output;
+    double last_input;
+  };
+
+  IIRFilter m_highpass_r = {};
+  IIRFilter m_highpass_l = {};
+  IIRFilter m_lowpass_r = {};
+  IIRFilter m_lowpass_l = {};
+  double m_lowpass_alpha = 0;
+  double m_highpass_alpha = 0;
+
+  std::vector<float> m_sample_buffer;
 
   // Inputs
   std::mutex m_keypress_mutex;
@@ -60,4 +79,8 @@ class SDLFrontend : public gb::IOFrontend {
   auto commitRender() -> void override;
   auto isFrameScheduled() -> bool override;
   auto isExitRequested() -> bool override;
+
+  auto get_approx_audio_sample_freq() -> size_t override;
+  auto try_flush_audio(std::span<std::pair<float, float>> samples)
+      -> std::optional<size_t> override;
 };

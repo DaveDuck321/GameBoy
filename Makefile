@@ -3,7 +3,7 @@ AR := ar
 EXEC := a.out
 
 DISPLAY := SDL
-CXX_FLAGS := -std=gnu++23 -O3 -Wall -Wextra -g -fsanitize=undefined -fsanitize=address
+CXX_FLAGS := -std=gnu++23 -O3 -Wall -Wextra -g
 
 BUILD_DIR := build
 

@@ -3,6 +3,7 @@
 #include "../libgb/io/io.hpp"
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_audio.h>
 #include <SDL2/SDL_pixels.h>
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_video.h>
@@ -12,6 +13,8 @@
 #include <cstdint>
 #include <iostream>
 #include <mutex>
+#include <numeric>
+#include <optional>
 #include <thread>
 #include <utility>
 
@@ -72,6 +75,36 @@ SDLFrontend::SDLFrontend() : m_key_events{{gb::Key::NONE}} {
   // Wait for SDL to initialize
   std::unique_lock lock{m_render_mutex};
   m_render_buffer_ready.wait(lock, [&] { return m_data_to_render != nullptr; });
+
+  SDL_AudioSpec desired_audio_spec = {
+      .freq = 24000,
+      .format = AUDIO_F32,
+      .channels = 2,
+      .silence = 0,
+      .samples = 1024,
+      .padding = 0,
+      .size = 0,
+      .callback = nullptr,
+      .userdata = nullptr,
+  };
+  SDL_AudioSpec actual_audio_spec = {};
+
+  m_audio_device = SDL_OpenAudioDevice(
+      nullptr, 0, &desired_audio_spec, &actual_audio_spec,
+      SDL_AUDIO_ALLOW_FREQUENCY_CHANGE | SDL_AUDIO_ALLOW_SAMPLES_CHANGE);
+  SDL_PauseAudioDevice(m_audio_device, 0);
+
+  m_audio_sample_frequency = actual_audio_spec.freq;
+
+  double sampling_period = 1.0 / (double)actual_audio_spec.freq;
+  double lowpass_cutoff = 12000.0;
+  double highpass_cutoff = 20.0;
+  m_lowpass_alpha =
+      (2.0 * std::numbers::pi * sampling_period * lowpass_cutoff) /
+      (2.0 * std::numbers::pi * sampling_period * lowpass_cutoff + 1.0);
+  m_highpass_alpha =
+      1.0 / (1 + 2.0 * std::numbers::pi * highpass_cutoff * sampling_period);
+  m_sample_buffer.resize(8UL * actual_audio_spec.samples);
 }
 
 auto SDLFrontend::process_events() -> void {
@@ -233,4 +266,73 @@ auto SDLFrontend::isFrameScheduled() -> bool {
 
 auto SDLFrontend::isExitRequested() -> bool {
   return m_exit_requested.load(std::memory_order_relaxed);
+}
+
+auto SDLFrontend::get_approx_audio_sample_freq() -> size_t {
+  return m_audio_sample_frequency;
+}
+
+auto SDLFrontend::try_flush_audio(std::span<std::pair<float, float>> samples)
+    -> std::optional<size_t> {
+  size_t sample_batch = m_sample_buffer.size() / 2;
+
+  // Buffer ahead two batches of samples (for better discard behaviour)
+  if (samples.size() < 2 * sample_batch) {
+    return std::nullopt;
+  }
+
+  const auto samples_per_frame = m_audio_sample_frequency / 60;
+
+  // Are we more than 2 frames ahead? If so start discarding some extra data to
+  // catch up.
+  size_t extra_discard = 0;
+  size_t discard_every = sample_batch;
+  if (auto queued_samples =
+          (SDL_GetQueuedAudioSize(m_audio_device) / (2 * sizeof(float)));
+      queued_samples > 2 * samples_per_frame) {
+    extra_discard += 5;
+    discard_every = sample_batch / extra_discard;
+
+    // Are we more than 3 frames ahead?? Give up and flush everything until we
+    // recover.
+    if (queued_samples > 5 * samples_per_frame) {
+      return samples.size();
+    }
+  }
+
+  size_t gameboy_sample = 0;
+  for (size_t host_index = 0; host_index < sample_batch; host_index += 1) {
+    gameboy_sample += 1;
+    if (gameboy_sample % discard_every == 0) {
+      gameboy_sample += 1;
+    }
+
+    size_t gameboy_sample = host_index;
+    double raw_l = samples[gameboy_sample].first;
+    double raw_r = samples[gameboy_sample].first;
+
+    double high_l = m_highpass_alpha * (m_highpass_l.last_output + raw_l -
+                                        m_highpass_l.last_input);
+    double high_r = m_highpass_alpha * (m_highpass_r.last_output + raw_r -
+                                        m_highpass_r.last_input);
+    m_highpass_l.last_input = raw_l;
+    m_highpass_r.last_input = raw_r;
+    m_highpass_l.last_output = high_l;
+    m_highpass_r.last_output = high_r;
+
+    double sample_l = m_highpass_l.last_output +
+                      m_lowpass_alpha * (high_l - m_highpass_l.last_output);
+    double sample_r = m_highpass_r.last_output +
+                      m_lowpass_alpha * (high_r - m_highpass_r.last_output);
+    m_lowpass_l.last_input = high_l;
+    m_lowpass_r.last_input = high_r;
+    m_lowpass_l.last_output = sample_l;
+    m_lowpass_r.last_output = sample_r;
+
+    m_sample_buffer[2 * host_index] = (float)sample_l;
+    m_sample_buffer[2 * host_index + 1] = (float)sample_r;
+  }
+  SDL_QueueAudio(m_audio_device, m_sample_buffer.data(),
+                 m_sample_buffer.size());
+  return sample_batch + extra_discard;
 }

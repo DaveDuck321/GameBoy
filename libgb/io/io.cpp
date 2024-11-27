@@ -1,36 +1,13 @@
 #include "io.hpp"
-
 #include "../error_handling.hpp"
+#include "io_registers.hpp"
 
 #include <cstdint>
 #include <format>
 #include <utility>
 
 using namespace gb;
-
-constexpr uint_fast16_t IO_OFFSET = 0xFF00;
-
-constexpr uint16_t LCD_STAT = 0xFF41 - IO_OFFSET;
-
-// Interrupts
-constexpr uint_fast16_t INTERRUPTS = 0xFF0F - IO_OFFSET;
-constexpr uint8_t TIMER_INTERRUPT = 0x04;
-constexpr uint8_t SERIAL_INTERRUPT = 0x08;
-constexpr uint8_t INPUT_INTERRUPT = 0x10;
-
-// Timers
-constexpr uint_fast16_t DIV_TIMER = 0xFF04 - IO_OFFSET;
-constexpr uint_fast16_t T_COUNTER = 0xFF05 - IO_OFFSET;
-constexpr uint_fast16_t T_MODULO = 0xFF06 - IO_OFFSET;
-constexpr uint_fast16_t T_CONTROL = 0xFF07 - IO_OFFSET;
-
-// Sound
-constexpr uint_fast16_t NR10_REG = 0xFF10 - IO_OFFSET;
-constexpr uint_fast16_t NR52_REG = 0xFF26 - IO_OFFSET;
-
-// Serial
-constexpr uint_fast16_t SERIAL_DATA = 0xFF01 - IO_OFFSET;
-constexpr uint_fast16_t SERIAL_CTL = 0xFF02 - IO_OFFSET;
+using namespace gb::io_registers;
 
 auto IO::reset() -> void {
   gpu.reset();
@@ -73,43 +50,10 @@ auto IO::ioRead(uint16_t addr) -> uint8_t {
       });
       return 0;
 
-    // Sound
-    case 0xFF10:
-      // NR10 - Channel 1 Sweep register (R/W)
-      return 0x80U | memory[addr - IO_OFFSET];
-    case 0xFF11:
-    case 0xFF16:
-      // NR11 - Channel 1 Sound length
-      return 0x3FU | memory[addr - IO_OFFSET];
-    case 0xFF13:
-    case 0xFF18:
-    case 0xFF1B:
-    case 0xFF1D:
-    case 0xFF20:
-      // NR13, NR23, NR31, NR33, NR41 (W)
-      // All write only so ignore read request
-      return 0xFF;
-    case 0xFF14:
-    case 0xFF19:
-    case 0xFF23:
-    case 0xFF1E:
-      // NR14, NR24, NR44, NR34 (R/W)
-      // All registers control channel frequency
-      // Bit 0-2 and 7 are write only, bits 3-5 are invalid
-      return 0xBFU | memory[addr - IO_OFFSET];
-    case 0xFF1A:
-      // NR30 - Channel 3 Sound on/off (R/W)
-      return 0x7FU | memory[addr - IO_OFFSET];
-    case 0xFF1C:
-      // NR32 - Channel 3 Select output level (R/W)
-      return 0x9FU | memory[addr - IO_OFFSET];
-    case 0xFF26:
-      // NR52 - Sound on/off
-      // TODO: real implementation
-      return 0x70U | memory[addr - IO_OFFSET];
+    case (IO_OFFSET + FIRST_APU_REGISTER)...(IO_OFFSET + LAST_APU_REGISTER):
+      updateTimers();
+      return apu.read(addr);
     case 0xFF27 ... 0xFF2F:
-    case 0xFF15:
-    case 0xFF1F:
       // Invalid memory, should always return 0xFF
       return 0xFF;
 
@@ -157,23 +101,10 @@ auto IO::ioWrite(uint16_t addr, uint8_t value) -> void {
       // LY -- Scroll Y (r)
       throw std::runtime_error("Cannot write to LY @ 0xFF44");
 
-    // Sound registers
-    case 0xFF26:
-      // NR52 - Sound on/off
-      //  All bits are read only except 7 (Sound on/off)
-      if ((value & 0x80U) != 0) {
-        powerUpAPU();
-      } else {
-        powerDownAPU();
-      }
+    case (IO_OFFSET + FIRST_APU_REGISTER)...(IO_OFFSET + LAST_APU_REGISTER):
+      updateTimers();
+      apu.write(addr, value);
       break;
-    case 0xFF10 ... 0xFF25:
-      // All Sound Control registers
-      // Writing to registers should only be possible when APU is powered
-      if ((memory[NR52_REG] & 0x80U) == 0) {
-        break;
-      }
-      [[fallthrough]];
     default:
       // Most IO actions don't require immediate action, deal with it later
       memory[addr - IO_OFFSET] = value;
@@ -206,6 +137,8 @@ auto IO::updateTimers() -> void {
   tCycleCount += dt;
   // Timer increments every 64 cycles
   memory[DIV_TIMER] = (cycle / 64) % 0x100;
+  apu.clock_to(4 * cycle);
+
   switch (memory[T_CONTROL] & 0x07U) {
     case 0x04:
       // 4096 Hz
@@ -236,6 +169,12 @@ auto IO::isSimulationFinished() -> bool {
 auto IO::update() -> void {
   updateTimers();
 
+  auto audio_samples = apu.get_samples();
+  if (auto flushed_count = frontend->try_flush_audio(audio_samples);
+      flushed_count.has_value()) {
+    apu.flush_samples(flushed_count.value());
+  }
+
   if (gpu.updateLCD(*frontend)) {
     // Render started, calculate frameskip, get inputs
     const uint8_t keyState = std::to_underlying(frontend->getKeyPressState());
@@ -247,21 +186,4 @@ auto IO::update() -> void {
     }
     inputs = ~keyState;
   }
-}
-
-auto IO::powerUpAPU() -> void {
-  /*
-  Powers down the APU and clears all related sound registers.
-  This disables all writing until APU is powered up again
-  */
-  memory[NR52_REG] &= 0x7FU;
-  std::fill(memory.begin() + NR10_REG, memory.begin() + NR52_REG, 0);
-}
-
-auto IO::powerDownAPU() -> void {
-  /*
-  Powers up the APU while maintaining register values.
-  This enables all writing.
-  */
-  memory[NR52_REG] |= 0x80U;
 }

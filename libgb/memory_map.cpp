@@ -39,7 +39,7 @@ void MemoryMap::reset() {
   write(0xFF23, 0xBF_B);  // NR30
   write(0xFF24, 0x77_B);  // NR50
   write(0xFF25, 0xF3_B);  // NR51
-  // writeU8(0xFF26, 0xF1-GB, $F0-SGB //NR52
+  write(0xFF26, 0xF1_B);  // NR52
   write(0xFF40, 0x91_B);  // LCDC
   write(0xFF42, 0x00_B);  // SCY
   write(0xFF43, 0x00_B);  // SCX
