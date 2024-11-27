@@ -1175,6 +1175,10 @@ void CPU::RET() {
           "Returning from a stack pointer that does not correspond to the last "
           "call instruction.");
     });
+
+    // Information is stale. Lets just give up.
+    return_address_pointers.clear();
+    expected_return_addresses.clear();
   }
 
   uint16_t expected_addr = pop_back(expected_return_addresses);
@@ -1186,6 +1190,10 @@ void CPU::RET() {
           "Returning from the correct stack pointer but the value has been "
           "clobbered since the last call.");
     });
+
+    // Information is stale. Lets just give up.
+    return_address_pointers.clear();
+    expected_return_addresses.clear();
   }
 
   registers.sp += 2;
