@@ -77,9 +77,19 @@ auto IO::ioWrite(uint16_t addr, uint8_t value) -> void {
       break;
     case 0xFF02:
       // SC -- SIO control (r/w)
-      //  Immediately display serial data to output
-      frontend->sendSerial(memory[SERIAL_DATA]);
-      memory[addr - IO_OFFSET] = value;
+      // Only send serial data if both the internal clock is selected AND the
+      // transfer is enabled (we emulate as-if there is no connected gameboy).
+      if ((value & (1U << 7U)) != 0 && (value & 1U) != 0) {
+        // Don't bother emulating the serialization delay, immediately output
+        // currently loaded data.
+        frontend->sendSerial(memory[SERIAL_DATA]);
+        memory[addr - IO_OFFSET] = value & ~(1U << 7U);
+        memory[SERIAL_DATA] = 0xff;
+        memory[INTERRUPTS] |= (1U << 3U);
+      } else {
+        // Passively commit write to the read/write fields
+        memory[SERIAL_DATA] = value | 0b0111'1110U;
+      }
       break;
     case 0xFF04:
       // DIV -- Divider Register (cannot write data)
