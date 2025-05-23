@@ -39,8 +39,8 @@ class GPU {
   explicit GPU(std::span<uint8_t, 0x80> io_memory);
   auto reset() -> void;
 
-  [[nodiscard]] auto readU8(uint16_t addr) const -> uint8_t;
-  auto writeU8(uint16_t addr, uint8_t value) -> void;
+  [[nodiscard]] auto readU8(uint16_t addr, bool is_dma) const -> uint8_t;
+  auto writeU8(uint16_t addr, uint8_t value, bool is_dma) -> void;
 
   auto updateTimers(uint64_t dt) -> void;
   auto updateLCD(IOFrontend&) -> bool;

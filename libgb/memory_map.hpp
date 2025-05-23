@@ -26,8 +26,8 @@ class MemoryMap {
 
   auto reset() -> void;
 
-  [[nodiscard]] auto read(uint16_t addr) const -> Byte;
-  auto write(uint16_t addr, Byte value) -> void;
+  [[nodiscard]] auto read(uint16_t addr, bool is_dma = false) const -> Byte;
+  auto write(uint16_t addr, Byte value, bool is_dma = false) -> void;
 };
 
 }  // namespace gb

@@ -37,6 +37,7 @@ class IO {
 
   uint64_t lastCycle = 0;
   uint64_t tCycleCount = 0;
+  uint64_t dmaStartTime = 0;
 
  public:
   uint64_t cycle = 0;
@@ -48,8 +49,12 @@ class IO {
 
   auto reset() -> void;
 
-  [[nodiscard]] auto videoRead(uint16_t addr) const -> uint8_t;
-  auto videoWrite(uint16_t addr, uint8_t value) -> void;
+  [[nodiscard]] auto isInDMA() const -> bool;
+  auto startDMA() -> void;
+
+  [[nodiscard]] auto videoRead(uint16_t addr, bool is_dma = false) const
+      -> uint8_t;
+  auto videoWrite(uint16_t addr, uint8_t value, bool is_dma = false) -> void;
 
   [[nodiscard]] auto ioRead(uint16_t addr) -> uint8_t;
   auto ioWrite(uint16_t addr, uint8_t value) -> void;

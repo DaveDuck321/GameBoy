@@ -63,21 +63,22 @@ void MemoryMap::DMA(uint8_t srcUpper) {
     return;
   }
 
+  io->startDMA();
   for (uint16_t offset = 0; offset < 0xA0U; offset++) {
     uint16_t srcAddr = static_cast<uint16_t>(srcUpper << 8U) | offset;
     uint16_t dstAddr = 0xFE00U | offset;
-    write(dstAddr, read(srcAddr));
+    write(dstAddr, read(srcAddr, /*is_dma=*/true), /*is_dma=*/true);
   }
 }
 
-auto MemoryMap::read(uint16_t addr) const -> Byte {
+auto MemoryMap::read(uint16_t addr, bool is_dma) const -> Byte {
   switch (addr) {
     case 0x0000 ... 0x7FFF:
       // Rom
       return cartridge->read(addr);
     case 0x8000 ... 0x9FFF:
       // Video Ram
-      return Byte{io->videoRead(addr)};
+      return Byte{io->videoRead(addr, is_dma)};
     case 0xA000 ... 0xBFFF:
       // External ram
       return cartridge->read(addr);
@@ -89,7 +90,7 @@ auto MemoryMap::read(uint16_t addr) const -> Byte {
       return workingRam[addr - 0xE000];
     case 0xFE00 ... 0xFE9F:
       // Sprite Attribute Table
-      return Byte{io->videoRead(addr)};
+      return Byte{io->videoRead(addr, is_dma)};
     case 0xFEA0 ... 0xFEFF:
       // Not Usable
       throw_error([&] {
@@ -115,7 +116,7 @@ auto MemoryMap::read(uint16_t addr) const -> Byte {
   }
 }
 
-auto MemoryMap::write(uint16_t addr, Byte value) -> void {
+auto MemoryMap::write(uint16_t addr, Byte value, bool is_dma) -> void {
   switch (addr) {
     case 0x0000 ... 0x7FFF:
       // Rom
@@ -123,7 +124,7 @@ auto MemoryMap::write(uint16_t addr, Byte value) -> void {
       break;
     case 0x8000 ... 0x9FFF:
       // Video Ram
-      io->videoWrite(addr, value.decay());
+      io->videoWrite(addr, value.decay(), is_dma);
       break;
     case 0xA000 ... 0xBFFF:
       // External ram
@@ -139,7 +140,7 @@ auto MemoryMap::write(uint16_t addr, Byte value) -> void {
       break;
     case 0xFE00 ... 0xFE9F:
       // Sprite Attribute Table
-      io->videoWrite(addr, value.decay());
+      io->videoWrite(addr, value.decay(), is_dma);
       break;
     case 0xFEA0 ... 0xFEFF:
       // Not Usable

@@ -1,6 +1,7 @@
 #include "gpu.hpp"
 
 #include "../constants.hpp"
+#include "../error_handling.hpp"
 #include "frontend.hpp"
 
 #include <cassert>
@@ -47,35 +48,71 @@ auto GPU::reset() -> void {
   windowOffsetY = 0;
 }
 
-[[nodiscard]] auto GPU::readU8(uint16_t addr) const -> uint8_t {
+[[nodiscard]] auto GPU::readU8(uint16_t addr, bool is_dma) const -> uint8_t {
+  auto mode = io_memory[LCD_STAT] & 0b11U;
   switch (addr) {
     case 0x8000 ... 0x97FF:
       // Tile data 1
+      if (!is_dma && mode == 3U) {
+        throw_error([] {
+          return PPUViolation("Reading from tile data during pixel blitz");
+        });
+      }
       return byteFromPatternTable(addr);
     case 0x9800 ... 0x9FFF:
       // Background maps
+      if (!is_dma && mode == 3U) {
+        throw_error([] {
+          return PPUViolation(
+              "Reading from background maps during pixel blitz");
+        });
+      }
       return byteFromBackgroundMaps(addr);
     case 0xFE00 ... 0xFE9F:
       // Sprite attributes
+      if (!is_dma && (mode == 2U || mode == 3U)) {
+        throw_error([] {
+          return PPUViolation(
+              "Reading from sprit attribute data during pixel blitz/ OAM scan");
+        });
+      }
       return byteFromSpriteAttributes(addr);
     default:
       throw std::range_error("Bad vram address read");
   }
 }
 
-auto GPU::writeU8(uint16_t addr, uint8_t value) -> void {
+auto GPU::writeU8(uint16_t addr, uint8_t value, bool is_dma) -> void {
+  auto mode = io_memory[LCD_STAT] & 0b11U;
+
   // Never allowed to write undefined to the GPU memory
   switch (addr) {
     case 0x8000 ... 0x97FF:
       // Tile data 1
+      if (!is_dma && mode == 3U) {
+        throw_error([] {
+          return PPUViolation("Writing to tile data during pixel blitz");
+        });
+      }
       const_cast<uint8_t&>(byteFromPatternTable(addr)) = value;
       break;
     case 0x9800 ... 0x9FFF:
       // Background maps
+      if (!is_dma && mode == 3U) {
+        throw_error([] {
+          return PPUViolation("Writing to background maps during pixel blitz");
+        });
+      }
       const_cast<uint8_t&>(byteFromBackgroundMaps(addr)) = value;
       break;
     case 0xFE00 ... 0xFE9F:
       // Sprite attributes
+      if (!is_dma && (mode == 2U || mode == 3U)) {
+        throw_error([] {
+          return PPUViolation(
+              "Writing to sprit attribute data during pixel blitz/ OAM scan");
+        });
+      }
       const_cast<uint8_t&>(byteFromSpriteAttributes(addr)) = value;
       break;
     default:
@@ -198,7 +235,7 @@ auto GPU::updateLCD(IOFrontend& frontend) -> bool {
           break;
         case 78 ... 246:
           // Mode 3: (don't need to emulate OAM)
-          io_memory[LCD_STAT] = (io_memory[LCD_STAT] & 0xFC) | 0x03U;
+          io_memory[LCD_STAT] = (io_memory[LCD_STAT] & 0xFCU) | 0x03U;
           break;
         default:
           // Mode 0: scan line needs to be drawn

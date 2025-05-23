@@ -18,12 +18,20 @@ auto IO::reset() -> void {
   cycle = 0;
 }
 
-auto IO::videoRead(uint16_t addr) const -> uint8_t {
-  return gpu.readU8(addr);
+[[nodiscard]] auto IO::isInDMA() const -> bool {
+  return dmaStartTime != 0 && dmaStartTime + 160 > cycle;
 }
 
-auto IO::videoWrite(uint16_t addr, uint8_t value) -> void {
-  gpu.writeU8(addr, value);
+auto IO::startDMA() -> void {
+  dmaStartTime = cycle;
+}
+
+auto IO::videoRead(uint16_t addr, bool is_dma) const -> uint8_t {
+  return gpu.readU8(addr, is_dma);
+}
+
+auto IO::videoWrite(uint16_t addr, uint8_t value, bool is_dma) -> void {
+  gpu.writeU8(addr, value, is_dma);
 }
 
 auto IO::ioRead(uint16_t addr) -> uint8_t {
@@ -103,6 +111,19 @@ auto IO::ioWrite(uint16_t addr, uint8_t value) -> void {
       break;
 
     // Special LCD registers
+    case 0xFF40:
+      if ((value & 0x80U) == 0 && (memory[addr - IO_OFFSET] & 0x80U) != 0) {
+        // We're disable the LCD, this is only allowed in vblank video mode
+        if ((memory[LCD_STAT] & 0b11U) != 1U) {
+          throw_error([] {
+            return LCDDisableViolation(
+                "LCD must only be disabled during vblank");
+          });
+        }
+      }
+      memory[addr - IO_OFFSET] = value;
+      break;
+
     case 0xFF41:
       // LCD Status Register
       memory[LCD_STAT] = 0x80U | (memory[LCD_STAT] & 0x07U) | (value & 0x78U);

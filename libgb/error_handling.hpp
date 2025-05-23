@@ -16,6 +16,9 @@ enum class ErrorKind {
   call_frame_violation,
   clobbered_return_address,
   reading_return_address,
+  ppu_access_violation,
+  lcd_disable_violation,
+  dma_bus_conflict,
   _last,
 };
 static constexpr auto error_kind_count = static_cast<size_t>(ErrorKind::_last);
@@ -86,6 +89,27 @@ class ClobberedReturnAddressError : public CorrectnessError {
 class ReadingReturnAddressError : public CorrectnessError {
  public:
   static constexpr auto kind = ErrorKind::reading_return_address;
+
+  using CorrectnessError::CorrectnessError;
+};
+
+class PPUViolation : public CorrectnessError {
+ public:
+  static constexpr auto kind = ErrorKind::ppu_access_violation;
+
+  using CorrectnessError::CorrectnessError;
+};
+
+class LCDDisableViolation : public CorrectnessError {
+ public:
+  static constexpr auto kind = ErrorKind::lcd_disable_violation;
+
+  using CorrectnessError::CorrectnessError;
+};
+
+class DMABusConflict : public CorrectnessError {
+ public:
+  static constexpr auto kind = ErrorKind::dma_bus_conflict;
 
   using CorrectnessError::CorrectnessError;
 };

@@ -18,6 +18,14 @@ auto CPU::reset() -> void {
 auto CPU::readU8(uint16_t addr, bool allow_undef) -> Byte {
   // Reads an 8-Bit value from 'addr'
   io->cycle++;  // Under normal circumstances a read takes 1 cycle
+  bool is_high_ram = 0xff80U <= addr && addr <= 0xfffeU;
+  if (!is_high_ram && io->isInDMA()) {
+    throw_error([&] {
+      return DMABusConflict(
+          std::format("Read of {:#06x} conflicts with a DMA access", addr));
+    });
+  }
+
   Byte result = memory_map->read(addr);
   if (not allow_undef && result.flags.undefined) {
     throw_error([&] {
@@ -61,6 +69,13 @@ auto CPU::readU16(uint16_t addr, bool allow_partial_undef) -> Word {
 auto CPU::writeU8(uint16_t addr, Byte value, bool allow_undef) -> void {
   // Writes an 8-Bit value to 'addr'
   io->cycle++;  // Under normal circumstances a write takes 1 cycle
+  bool is_high_ram = 0xff80U <= addr && addr <= 0xfffeU;
+  if (!is_high_ram && io->isInDMA()) {
+    throw_error([&] {
+      return DMABusConflict(
+          std::format("Write of {:#06x} conflicts with a DMA access", addr));
+    });
+  }
   if (not allow_undef && value.flags.undefined) {
     throw_error([&] {
       return UndefinedDataError("Attempting to write undefined into memory");
@@ -77,9 +92,8 @@ auto CPU::writeU8(uint16_t addr, Byte value, bool allow_undef) -> void {
   memory_map->write(addr, value);
 }
 
-auto CPU::writeU16(uint16_t addr,
-                   Word value,
-                   bool allow_partial_undef) -> void {
+auto CPU::writeU16(uint16_t addr, Word value, bool allow_partial_undef)
+    -> void {
   // Writes a 16-Bit LE value to 'addr'
   if (allow_partial_undef) {
     if (value.low_undefined && value.high_undefined) {
