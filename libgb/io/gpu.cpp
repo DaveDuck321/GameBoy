@@ -203,7 +203,7 @@ auto GPU::setLCDStage(uint8_t stage, bool interrupt) -> bool {
 }
 
 auto GPU::updateTimers(uint64_t dt) -> void {
-  vCycleCount += dt;
+  vCycleCount += 4 * dt;
 }
 
 auto GPU::updateLCD(IOFrontend& frontend) -> bool {
@@ -277,14 +277,22 @@ auto GPU::spriteOverridesPixel(int screenX, int screenY, uint8_t& color) const
   */
   // Set to 8 of 16 height mode
   uint8_t height = 8 + ((io_memory[LCDC] & 0x04U) << 1U);
+
   // Sprites are enabled, draw them
+  size_t sprites_on_scanline = 0;
   for (const SpriteAttribute& attribs : sprites) {
-    // TODO: maybe implement sprite count bug?
-    // Check if sprite contains x coord
-    if ((attribs.x > screenX + 8) || (attribs.x <= screenX)) {
+    if ((attribs.y > screenY + 16) || (attribs.y + height <= screenY + 16)) {
       continue;
     }
-    if ((attribs.y > screenY + 16) || (attribs.y + height <= screenY + 16)) {
+
+    sprites_on_scanline += 1;
+    if (sprites_on_scanline > 10) {
+      // The PPU selects up to 10 objects sequentially from OAM
+      continue;
+    }
+
+    // Check if sprite contains x coord
+    if ((attribs.x > screenX + 8) || (attribs.x <= screenX)) {
       continue;
     }
 

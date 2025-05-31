@@ -274,7 +274,7 @@ auto SDLFrontend::get_approx_audio_sample_freq() -> size_t {
 
 auto SDLFrontend::try_flush_audio(std::span<std::pair<float, float>> samples)
     -> std::optional<size_t> {
-  size_t sample_batch = m_sample_buffer.size() / 2;
+  size_t sample_batch = m_sample_buffer.size() / 8;
 
   // Buffer ahead two batches of samples (for better discard behaviour)
   if (samples.size() < 2 * sample_batch) {

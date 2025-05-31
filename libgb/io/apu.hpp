@@ -10,7 +10,7 @@
 namespace gb {
 
 static constexpr size_t AUDIO_SAMPLE_FREQUENCY = 1UL << 22UL;
-static constexpr size_t APPROX_PLAYBACK_FREQUENCY = 4213440;
+static constexpr size_t APPROX_PLAYBACK_FREQUENCY = 4213440UL;
 
 class APU {
   std::span<uint8_t, 0x80> io_memory;
