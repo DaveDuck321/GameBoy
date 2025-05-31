@@ -1055,7 +1055,7 @@ void CPU::JP_nn(uint16_t nn) {
       nn = two byte immediate value. (LS byte first.)
   */
   io->cycle++;  // Jumping takes 1 cycle
-  registers.pc = nn;
+  registers.setPC(nn);
 }
 
 void CPU::JP_cc_nn(Flag f, bool set, uint16_t nn) {
@@ -1080,7 +1080,7 @@ void CPU::JP_HL() {
       Jump to address contained in HL
   */
   // Dont use JP function here since HL jump is free (0 cycles)
-  registers.pc = getRegU16(Register::HL).decay();
+  registers.setPC(getRegU16(Register::HL).decay());
 }
 
 void CPU::JR_n(int8_t n) {
@@ -1119,7 +1119,7 @@ void CPU::CALL_nn(uint16_t nn) {
   return_address_pointers.push_back(registers.sp);
 
   // Don't call JP_nn, the jump should take 0 cycles
-  registers.pc = nn;
+  registers.setPC(nn);
 }
 
 void CPU::CALL_cc_nn(Flag f, bool set, uint16_t nn) {

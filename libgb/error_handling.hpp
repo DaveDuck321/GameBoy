@@ -14,6 +14,7 @@ enum class ErrorKind {
   illegal_memory_write,
   undefined_data,
   call_frame_violation,
+  pc_outside_of_program_memory,
   clobbered_return_address,
   reading_return_address,
   ppu_access_violation,
@@ -89,6 +90,13 @@ class ClobberedReturnAddressError : public CorrectnessError {
 class ReadingReturnAddressError : public CorrectnessError {
  public:
   static constexpr auto kind = ErrorKind::reading_return_address;
+
+  using CorrectnessError::CorrectnessError;
+};
+
+class PCOutsideProgramMemory : public CorrectnessError {
+ public:
+  static constexpr auto kind = ErrorKind::pc_outside_of_program_memory;
 
   using CorrectnessError::CorrectnessError;
 };

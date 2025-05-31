@@ -4,6 +4,7 @@
 
 #include <array>
 #include <cstdint>
+#include <format>
 #include <utility>
 
 namespace gb {
@@ -42,6 +43,11 @@ inline auto operator|(Flag f1, Flag f2) -> Flag {
 inline auto operator&(Flag f1, Flag f2) -> Flag {
   return Flag(std::to_underlying(f1) & std::to_underlying(f2));
 };
+
+constexpr auto is_valid_pc(uint16_t pc) -> bool {
+  // PC is only valid inside the ROM and high RAM
+  return (pc <= 0x7FFF) || (0xFF80 <= pc && pc <= 0xFFFE);
+}
 
 // Dont really like this, but it makes everything else prettier
 // GB is used for pointer registers
@@ -141,7 +147,7 @@ struct CPURegisters {
         sp = value.decay();
         break;
       case Reg16::PC:
-        pc = value.decay();
+        setPC(value.decay());
         break;
     }
   }
@@ -173,6 +179,23 @@ struct CPURegisters {
         l = value;
         break;
     }
+  }
+
+  auto setPC(uint16_t value) -> void {
+    if (not is_valid_pc(value)) {
+      throw_error([&] {
+        return PCOutsideProgramMemory(std::format(
+            "Attempting to assign {:#06x} to PC (currently {:#06x})", value,
+            pc));
+      });
+    }
+    pc = value;
+  }
+
+  auto incrementPC() -> uint16_t {
+    auto old_pc = pc;
+    setPC(pc + 1);
+    return old_pc;
   }
 };
 }  // namespace gb

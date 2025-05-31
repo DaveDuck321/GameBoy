@@ -115,14 +115,14 @@ auto CPU::writeU16(uint16_t addr, Word value, bool allow_partial_undef)
 auto CPU::advancePC1Byte() -> uint8_t {
   // Returns the 8-Bit value pointed to by the program counter, increments the
   // counter
-  return readU8(registers.pc++).decay();
+  return readU8(registers.incrementPC()).decay();
 }
 
 auto CPU::advancePC2Bytes() -> uint16_t {
   // Returns the 16-Bit value pointed to by the program counter, increments the
   // counter twice
   Word result = readU16(registers.pc);
-  registers.pc += 2;
+  registers.setPC(registers.pc + 2);
   return result.decay();
 }
 

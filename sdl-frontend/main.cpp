@@ -64,6 +64,7 @@ auto main(int argc, char** argv) -> int {
              gb::ErrorKind::clobbered_return_address,
              gb::ErrorKind::reading_return_address,
              gb::ErrorKind::ppu_access_violation,
+             gb::ErrorKind::pc_outside_of_program_memory,
          }) {
       gb::permit_error_kind(kind);
     }
